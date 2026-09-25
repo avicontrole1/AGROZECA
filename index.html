@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AgroZeca</title>
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="AgroZeca">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#021a45">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F7F4;--surface:#FFFFFF;--ink:#1E2A2F;--muted:#5E6D73;--zinc:#9AA7AC;--line:#DDE2E0;
+  --corn:#C98A12;--corn-soft:#F6E7C4;--ok:#2F7A4A;--alert:#B3362B;
+  --sans:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#151B1E;--surface:#1E262A;--ink:#E9EEEC;--muted:#9FAEB3;--zinc:#6C7B81;--line:#2E393E;
+  --corn:#F0B13A;--corn-soft:#3A3120;--ok:#5BB57A;--alert:#E0685C;}}
+:root[data-theme="dark"]{--bg:#151B1E;--surface:#1E262A;--ink:#E9EEEC;--muted:#9FAEB3;--zinc:#6C7B81;--line:#2E393E;--corn:#F0B13A;--corn-soft:#3A3120;--ok:#5BB57A;--alert:#E0685C;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 10px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.25rem;letter-spacing:-.01em}
+.farm{color:var(--muted);font-size:.9rem;text-align:right}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:22px}
+nav button{flex:1;white-space:nowrap;font:600 .92rem var(--sans);color:var(--muted);background:none;border:0;padding:12px 4px;border-bottom:3px solid transparent;cursor:pointer}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--corn)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--corn);outline-offset:2px}
+.demo-note{font-size:.85rem;color:var(--muted);background:var(--corn-soft);padding:8px 12px;border-radius:6px;margin-bottom:20px}
+.verdict{font-family:var(--cond);font-weight:600;font-size:clamp(1.9rem,6.5vw,2.8rem);line-height:1.08;margin:0 0 6px;letter-spacing:-.01em}
+.verdict .gap{color:var(--corn)}
+.sub{color:var(--muted);margin:0 0 18px}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 10px 6px;margin-bottom:22px}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:16px;font-size:.85rem;color:var(--muted);padding:4px 6px 8px}
+.legend{flex-wrap:wrap;row-gap:4px}.legend span{white-space:nowrap}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px}
+.stat{padding:12px 0;border-top:2px solid var(--line)}
+.stat b{display:block;font:600 1.9rem/1.1 var(--cond)}
+.stat span{color:var(--muted);font-size:.9rem}
+.silo{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:22px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:20px;align-items:start}
+.silo-svg{width:100%;max-width:150px;height:auto;display:block}
+.silo>*{min-width:0}
+.silo-top{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.silo-top h3{margin:0;font:600 1.5rem/1.1 var(--cond)}
+.pill{font-weight:600;font-size:.85rem;padding:5px 12px;border-radius:20px;color:#fff;white-space:nowrap}
+.pill.ok{background:var(--ok)}.pill.warn{background:var(--corn);color:#1E2A2F}.pill.alert{background:var(--alert)}
+.silo-figs{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.silo-figs div{border-top:2px solid var(--line);padding-top:8px}
+.silo-figs b{display:block;font:600 1.2rem/1.15 var(--cond)}
+.silo-figs span{color:var(--muted);font-size:.76rem;line-height:1.3;display:block}
+.silo-cons{grid-column:1/-1;border-top:1px solid var(--line);padding-top:12px}
+.silo-cons p{margin:0 0 6px;color:var(--muted);font-size:.85rem}
+.silo-foot{grid-column:1/-1;margin:0;color:var(--muted);font-size:.82rem}
+.section h3{margin:0 0 4px;font-size:1.1rem}
+.fin-hero{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:22px}
+.fin-hero .big{font:700 clamp(2.4rem,11vw,3.4rem)/1 var(--cond);margin:4px 0}
+.fin-hero .lbl{color:var(--muted);font-size:.95rem}
+.fin-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.fin-row div{border-top:2px solid var(--line);padding-top:8px}
+.fin-row b{display:block;font:600 1.15rem/1.2 var(--cond)}
+.fin-row span{color:var(--muted);font-size:.78rem;line-height:1.3;display:block}
+.cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;margin-bottom:12px;font-size:.95rem}
+.cat .bar{grid-column:1/-1;height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.cat .bar i{display:block;height:100%;background:var(--corn);border-radius:4px}
+.cat small{color:var(--muted)}
+.gasto{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.gasto b{font-weight:600}.gasto span{display:block;color:var(--muted);font-size:.82rem}
+.gasto .val{font-weight:600;white-space:nowrap}
+.del{background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;min-width:44px;min-height:44px;font-size:1.1rem;cursor:pointer}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.dia{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+.dia b{display:block}.dia span{color:var(--muted);font-size:.85rem;line-height:1.35;display:block}
+.dia.on{background:var(--corn-soft);border-radius:8px;padding:12px 10px}
+.editbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--corn-soft);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-weight:600}
+.splash{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:calc(24px + env(safe-area-inset-top,0px)) 0 calc(24px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,#022a6c 0%,#021d4f 50%,#011233 100%);color:#d7e5ff;text-align:center}
+.splash-img{width:min(100vw,520px);height:auto;max-height:80vh;object-fit:contain;display:block;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 7%,#000 93%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 7%,#000 93%,transparent 100%);animation:splashIn .8s ease-out both}
+.splash-msg{margin:0;font-size:.95rem;min-height:1.4em;color:#b9cdf5}
+.splash .btn{background:#fff;color:#011233}
+@keyframes splashIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.splash-img{animation:none}}
+.brand img{border-radius:8px;display:block}
+.login{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:24px 18px;box-sizing:border-box}
+.login-box{width:100%;max-width:380px;display:grid;gap:14px}
+.login-box h1{margin:6px 0 0;font:600 2rem/1.1 var(--cond)}
+.linkbtn{background:none;border:0;color:var(--ink);text-decoration:underline;font:500 1rem var(--sans);min-height:44px;cursor:pointer;justify-self:start;padding:0}
+.adminbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--corn-soft);padding:10px 12px;border-radius:8px;margin-bottom:16px;font-weight:600}
+.lics{display:grid;gap:8px;margin-bottom:14px}
+.licrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.licrow b{display:block}.licrow span{color:var(--muted);font-size:.82rem}
+.licrow input{font-size:.95rem;padding:8px;width:auto}
+.lic{padding:12px 14px;border-radius:8px;margin-bottom:20px;font-size:.95rem;line-height:1.45}
+.lic.warn{background:var(--corn-soft)}
+.lic.alert{background:var(--alert);color:#fff}
+.bloqueado form .btn[type=submit],.bloqueado #addGalpao{opacity:.45}
+.backup{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.file-btn{position:relative;overflow:hidden}
+.file-btn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.head-right{display:flex;align-items:center;gap:10px;min-width:0}
+.gear{background:none;border:1px solid var(--line);border-radius:8px;min-width:44px;min-height:44px;color:var(--ink);cursor:pointer;display:grid;place-items:center}
+.gear[aria-pressed="true"]{border-color:var(--corn);background:var(--corn-soft)}
+fieldset{border:0;padding:0;margin:0;display:grid;gap:14px}
+legend{font:600 1.25rem var(--cond);padding:0;margin-bottom:4px}
+.cfg-actions{display:flex;gap:10px;flex-wrap:wrap}
+.gsel{font:600 .95rem var(--sans);padding:8px 10px;min-height:44px;width:auto;max-width:44vw;border:1px solid var(--zinc);border-radius:8px;background:var(--surface);color:var(--ink)}
+.galp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-bottom:8px}
+.galp.on{border-color:var(--corn);box-shadow:inset 0 0 0 1px var(--corn)}
+.galp b{display:block}.galp span{color:var(--muted);font-size:.85rem}
+.galp-btns{display:flex;gap:6px}
+.sbtn{font:600 .9rem var(--sans);min-height:44px;padding:0 12px;border:1px solid var(--zinc);border-radius:8px;background:none;color:var(--ink);cursor:pointer}
+.sbtn.danger{color:var(--alert);border-color:var(--alert)}
+.sbtn.danger.confirm{background:var(--alert);color:#fff}
+#cfgEditing{margin:26px 0 12px;font:600 1.4rem var(--cond)}
+h2{font:600 1.5rem/1.2 var(--cond);margin:28px 0 10px}
+form{display:grid;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px}
+label{display:grid;gap:4px;font-weight:600;font-size:.95rem}
+label small{font-weight:400;color:var(--muted)}
+input,select{font:500 1.1rem var(--sans);padding:10px 12px;border:1px solid var(--zinc);border-radius:6px;background:var(--bg);color:var(--ink);width:100%}
+.btn{font:600 1.05rem var(--sans);padding:12px 16px;border:0;border-radius:8px;background:var(--ink);color:var(--bg);cursor:pointer}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--zinc)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.tbl{overflow-x:auto;margin-bottom:18px}
+.aval{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:22px}
+.aval-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.aval-top h2{margin:0}
+.aval-item{display:grid;grid-template-columns:14px minmax(0,1fr);gap:10px;padding:11px 0;border-top:1px solid var(--line)}
+.aval-item .dot{width:12px;height:12px;border-radius:50%;margin-top:5px}
+.dot.ok{background:var(--ok)}.dot.atencao{background:var(--corn)}.dot.alerta{background:var(--alert)}
+.aval-item b{display:block;line-height:1.3}
+.aval-item p{margin:3px 0 0;color:var(--muted);font-size:.92rem;line-height:1.45}
+.aval-item details{margin-top:4px}
+.aval-item summary{cursor:pointer;font-weight:600;font-size:.9rem;min-height:36px;display:flex;align-items:center;color:var(--ink)}
+.aval-item summary::-webkit-details-marker{display:none}
+.aval-item summary::before{content:"▸";display:inline-block;margin-right:8px;color:var(--corn);transition:transform .15s}
+.aval-item details[open] summary::before{transform:rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.aval-item summary::before{transition:none}}
+.aval-item ul{margin:2px 0 4px;padding-left:18px;font-size:.92rem;line-height:1.5}
+.aval-ok{margin:0;padding:10px 0 0;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+.aval-nota{margin:10px 0 0;color:var(--muted);font-size:.78rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:14px 0 20px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi span{display:block;color:var(--muted);font-size:.8rem}
+.kpi b{display:block;font:600 1.5rem/1.15 var(--cond);margin-top:2px}
+.kpi small{display:block;font-size:.78rem;margin-top:2px;color:var(--muted)}
+.kpi small.pos{color:var(--ok)}.kpi small.neg{color:var(--alert)}
+.lista-dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 14px;margin:0 0 18px;font-size:.95rem}
+.lista-dl dt{color:var(--muted)}.lista-dl dd{margin:0;font-weight:600;text-align:right}
+.vbtn{font:600 .85rem var(--sans);min-height:36px;padding:0 10px;border:1px solid var(--zinc);border-radius:8px;background:none;color:var(--ink);cursor:pointer}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.95rem}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--muted);font-size:.85rem}
+td.neg{color:var(--alert)} td.pos{color:var(--ok)}
+.report-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-bottom:3px solid var(--ink);padding-bottom:12px;margin-bottom:16px}
+.report-head h2{margin:0}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 18px;margin-bottom:20px}
+.meta div span{display:block;color:var(--muted);font-size:.85rem}
+.meta div b{font-weight:600}
+.note{border-left:4px solid var(--ok);padding:4px 0 4px 14px;margin:0 0 14px}
+.note.warn{border-color:var(--alert)}
+.note ul{margin:4px 0 0;padding-left:18px}
+.foot{color:var(--muted);font-size:.8rem;margin-top:26px;border-top:1px solid var(--line);padding-top:10px}
+[hidden]{display:none!important}
+@media (max-width:520px){.farm{display:none}}
+@media (max-width:480px){.grid{grid-template-columns:1fr 1fr}.silo{grid-template-columns:120px minmax(0,1fr);gap:12px}.silo-figs{grid-template-columns:1fr;gap:10px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{header,nav,.demo-note,#tab-hoje,#tab-lancar,#tab-financeiro,#tab-config,.no-print{display:none!important}#tab-relatorio{display:block!important}body{background:#fff;color:#000}.wrap{max-width:none}}
+.splash-img{width:min(100vw,56.25vh)!important;height:auto;max-height:none!important;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 7%,#000 93%,transparent 100%)!important;mask-image:linear-gradient(180deg,transparent 0,#000 7%,#000 93%,transparent 100%)!important}
+.splash{background:linear-gradient(180deg,#0c57bd 0 50%,#5f8611 50% 100%)!important}
+.splash-msg{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));color:#fff!important;text-shadow:0 1px 4px rgba(0,0,0,.7);font-weight:600}
+</style>
+</head>
+<body>
+<div class="splash" id="loadingScreen"><img class="splash-img" src="logo.jpg" alt="AgroZeca"><p class="splash-msg" id="loadingMsg" role="status">Carregando…</p></div>
+<div class="login" id="loginScreen" hidden>
+  <div class="login-box">
+    <div class="brand"><img src="icon-192.png" width="34" height="34" alt="">AgroZeca</div>
+    <h1>Entrar</h1>
+    <p class="sub" style="margin:0">Use o e-mail e a senha que você recebeu.</p>
+    <form id="loginForm">
+      <label>E-mail<input id="lEmail" type="email" autocomplete="username" required></label>
+      <label>Senha<input id="lSenha" type="password" autocomplete="current-password" required></label>
+      <button class="btn" type="submit" id="loginBtn">Entrar</button>
+    </form>
+    <button class="linkbtn" type="button" id="esqueciBtn">Esqueci a senha</button>
+    <p class="sub" id="loginMsg" role="status" style="margin:0"></p>
+  </div>
+</div>
+<div class="wrap" id="app" hidden>
+  <header>
+    <div class="brand"><img src="icon-192.png" width="34" height="34" alt="">
+      AgroZeca
+    </div>
+    <div class="head-right">
+      <div class="farm" id="farm"></div>
+      <select class="gsel" id="galpaoSel" aria-label="Escolher galpão"></select>
+      <button class="gear" id="cfgBtn" aria-label="Dados do lote" aria-pressed="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
+  </header>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-tab="hoje">Hoje</button>
+    <button role="tab" aria-selected="false" data-tab="lancar">Lançar dia</button>
+    <button role="tab" aria-selected="false" data-tab="relatorio">Relatório</button>
+    <button role="tab" aria-selected="false" data-tab="financeiro">Financeiro</button>
+  </nav>
+  <div class="adminbar" id="adminBar" hidden><label for="clienteSel">Cliente</label><select class="gsel" id="clienteSel" style="max-width:70vw"></select></div>
+  <div id="licenca"></div>
+
+  <section id="tab-hoje">
+    <p class="verdict" id="verdict"></p>
+    <p class="sub" id="verdict-sub"></p>
+    <div class="aval" id="avaliacao"></div>
+    <div class="chart">
+      <div class="legend"><span><i style="background:var(--corn)"></i>Peso real</span><span><i style="background:var(--zinc)"></i>Padrão da linhagem</span></div>
+      <svg id="weightChart" viewBox="0 0 600 280" role="img" aria-label="Peso real comparado ao padrão da linhagem"></svg>
+    </div>
+    <h2>Consumo de ração por dia</h2>
+    <p class="sub" id="consumoResumo"></p>
+    <div class="chart">
+      <div class="legend"><span><i style="background:var(--corn)"></i>Consumo real</span><span><i style="background:var(--zinc)"></i>Previsto (linhagem × aves vivas)</span></div>
+      <svg id="consumoChart" viewBox="0 0 600 270" role="img" aria-label="Consumo real de ração por dia comparado ao previsto pela linhagem"></svg>
+    </div>
+    <h2>Consumo de água por dia</h2>
+    <p class="sub" id="aguaResumo"></p>
+    <div class="chart">
+      <div class="legend"><span><i style="background:#2B8BD0"></i>Consumo real</span><span><i style="background:var(--zinc)"></i>Esperado (ração prevista × relação água)</span></div>
+      <svg id="aguaChart" viewBox="0 0 600 270" role="img" aria-label="Consumo real de água por dia comparado ao esperado"></svg>
+    </div>
+    <div class="silo" id="siloPanel"></div>
+    <div class="grid" id="stats"></div>
+    <h2>Mortalidade e eliminação por dia</h2>
+    <p class="sub" id="mortResumo"></p>
+    <div class="chart">
+      <div class="legend"><span><i style="background:var(--corn)"></i>Mortalidade</span><span><i style="background:var(--alert)"></i>Eliminação</span></div>
+      <svg id="mortChart" viewBox="0 0 600 190" role="img" aria-label="Mortalidade e eliminação por dia"></svg>
+    </div>
+  </section>
+
+  <section id="tab-lancar" hidden>
+    <h2 id="lancarTitle" style="margin-top:0"></h2>
+    <div class="editbar" id="editBar" hidden><span id="editTxt"></span><button class="sbtn" type="button" id="editCancel">Cancelar edição</button></div>
+    <form id="form">
+      <div class="two"><label>Aves mortas hoje<input id="fMort" type="number" inputmode="numeric" min="0" required></label><label>Aves eliminadas hoje<input id="fElim" type="number" inputmode="numeric" min="0" value="0"></label></div>
+      <label>Leitura do silo (kg)<small>Quanto de ração tem no silo agora</small><input id="fSilo" type="number" inputmode="numeric" min="0" required></label>
+      <label>Carga de ração recebida (kg)<small>Deixe 0 se não chegou ração hoje</small><input id="fCarga" type="number" inputmode="numeric" min="0" value="0"></label>
+      <label>Leitura do hidrômetro (m³)<small>Com duas casas decimais, ex.: 5006,44. Deixe em branco se não leu hoje.</small><input id="fAgua" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9.,]*"></label>
+      <label>Peso médio (g)<small>Só nos dias de pesagem</small><input id="fPeso" type="number" inputmode="numeric" min="0"></label>
+      <label>Observação<small>Opcional: tratamento, ocorrência, visita técnica</small><input id="fObs" type="text" autocomplete="off" maxlength="300"></label>
+      <button class="btn" type="submit" id="formBtn">Salvar lançamento</button>
+    </form>
+    <h2>Lançamentos anteriores</h2>
+    <p class="sub" style="margin-top:-4px">Toque em Editar para corrigir um dia. O consumo de ração e os indicadores são recalculados.</p>
+    <div id="histDias"></div>
+    <button class="btn ghost" type="button" id="verTodos" hidden>Ver todos os dias</button>
+  </section>
+
+  <section id="tab-financeiro" hidden>
+    <div class="fin-hero" id="finHero"></div>
+    <h2>Gastos por categoria</h2>
+    <div id="finCats"></div>
+    <h2>Lançar gasto</h2>
+    <form id="finForm">
+      <label>Categoria<select id="gCat" required></select></label>
+      <label>Descrição<small>Ex.: conta de luz de setembro, carga de lenha</small><input id="gDesc" type="text" required></label>
+      <div class="two">
+        <label>Valor (R$)<input id="gVal" type="number" inputmode="decimal" min="0" step="0.01" required></label>
+        <label>Data<input id="gData" type="date" required></label>
+      </div>
+      <button class="btn" type="submit">Salvar gasto</button>
+    </form>
+    <h2>Gastos lançados</h2>
+    <div id="finList"></div>
+    <h2>Resultado dos lotes encerrados</h2>
+    <div id="histFin"></div>
+  </section>
+
+  <section id="tab-config" hidden>
+    <h2 style="margin-top:0">Galpões da granja</h2>
+    <p class="sub">Toque em Editar para mudar os dados de um galpão, ou adicione um novo.</p>
+    <div id="galpList"></div>
+    <button class="btn ghost" type="button" id="addGalpao">Adicionar galpão</button>
+    <h3 id="cfgEditing"></h3>
+    <form id="cfgForm">
+      <fieldset><legend>Granja</legend>
+        <label>Nome da granja<small>Vale para todos os galpões</small><input id="cGranja" type="text" required></label>
+      </fieldset>
+      <fieldset><legend>Galpão</legend>
+        <label>Nome do galpão<input id="cGalpao" type="text" required></label>
+      </fieldset>
+      <fieldset><legend>Lote</legend>
+        <label>Linhagem<select id="cLinhagem"></select></label>
+        <div class="two">
+          <label>Data de alojamento<input id="cAloj" type="date" required></label>
+          <label>Aves alojadas<input id="cAves" type="number" inputmode="numeric" min="1" required></label>
+        </div>
+        <label>Peso médio de chegada (g)<input id="cPeso0" type="number" inputmode="decimal" min="1" step="0.01" required></label>
+      </fieldset>
+      <fieldset><legend>Silo</legend>
+        <label>Capacidade do silo (kg)<input id="cCap" type="number" inputmode="numeric" min="1" required></label>
+        <div class="two">
+          <label>Ponto de pedido (kg)<small>Quando pedir ração</small><input id="cPed" type="number" inputmode="numeric" min="0" required></label>
+          <label>Margem (kg)<small>Folga para não derramar</small><input id="cMarg" type="number" inputmode="numeric" min="0" required></label>
+        </div>
+      </fieldset>
+      <fieldset><legend>Água</legend>
+        <label>Leitura do hidrômetro no alojamento (m³)<small>Ponto de partida do consumo de água deste lote. Pode deixar em branco: aí o consumo começa a contar a partir da segunda leitura.</small><input id="cHidro" type="text" inputmode="decimal" autocomplete="off"></label>
+        <label>Relação água : ração esperada<small>Litros de água por kg de ração. O comum é 1,8; em dias quentes pode passar de 2.</small><input id="cRelAgua" type="text" inputmode="decimal" autocomplete="off" required></label>
+      </fieldset>
+      <div class="cfg-actions"><button class="btn" type="submit">Salvar dados do galpão</button><button class="btn ghost" type="button" id="cfgCancel">Cancelar</button></div>
+    </form>
+    <h2 id="encTitle">Encerrar lote</h2>
+    <p class="sub" id="encInfo"></p>
+    <button class="btn ghost" type="button" id="encOpen">Encerrar lote</button>
+    <form id="encForm" hidden>
+      <div class="two">
+        <label>Data do abate<input id="eData" type="date" required></label>
+        <label>Aves carregadas<input id="eAves" type="number" inputmode="numeric" min="1" required></label>
+      </div>
+      <div class="two">
+        <label>Peso médio no abate (kg)<input id="ePeso" type="number" inputmode="decimal" min="0.1" step="0.001" required></label>
+        <label>Sobra recolhida (kg)<small>Ração que a integradora recolheu do silo</small><input id="eSobra" type="number" inputmode="numeric" min="0" required></label>
+      </div>
+      <label>Valor recebido da integração (R$)<small>Valor líquido do lote, já com os descontos</small><input id="eValor" type="number" inputmode="decimal" min="0" step="0.01" required></label>
+      <div class="cfg-actions"><button class="btn" type="submit" id="encSubmit">Encerrar lote</button><button class="btn ghost" type="button" id="encCancel">Cancelar</button></div>
+    </form>
+    <h2>Cópia de segurança</h2>
+    <p class="sub">Seus dados ficam salvos na nuvem automaticamente, em qualquer aparelho em que você entrar. Se quiser, guarde também uma cópia no celular.</p>
+    <div class="backup">
+      <button class="btn ghost" type="button" id="exportBtn" hidden>Salvar cópia dos dados</button>
+      <label class="btn ghost file-btn">Restaurar uma cópia<input type="file" id="importInput" accept=".json,application/json"></label>
+    </div>
+    <p class="sub" id="acessoInfo" style="margin-top:18px"></p>
+    <div id="adminPanel" hidden>
+      <h2>Acessos dos clientes</h2>
+      <p class="sub">Só você vê esta parte. Para renovar, mude a data e toque em Salvar.</p>
+      <div class="lics" id="licList"></div>
+      <h3>Novo acesso</h3>
+      <form id="licForm">
+        <label>Nome do cliente<input id="nNome" type="text" required></label>
+        <label>UID do usuário<small>Copie do Firebase, em Authentication, depois de criar o e-mail e a senha dele</small><input id="nUid" type="text" required autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <label>Acesso válido até<input id="nVenc" type="date" required></label>
+        <button class="btn" type="submit">Criar acesso</button>
+      </form>
+    </div>
+    <button class="btn ghost" type="button" id="logoutBtn" style="margin-top:22px">Sair da conta</button>
+  </section>
+
+  <section id="tab-lote" hidden>
+    <button class="btn ghost" type="button" id="loteVoltar" style="margin-bottom:14px">← Voltar</button>
+    <div id="loteDet"></div>
+  </section>
+
+  <section id="tab-relatorio" hidden>
+    <div class="report-head">
+      <div><h2>Relatório de desempenho</h2><div class="sub" id="repSub" style="margin:0"></div></div>
+      <button class="btn ghost no-print" id="printBtn">Imprimir ou salvar PDF</button>
+    </div>
+    <div class="meta" id="repMeta"></div>
+    <h3>Desempenho por idade</h3>
+    <div class="tbl"><table id="repTable"></table></div>
+    <h3>Projeção até o abate (42 dias)</h3>
+    <div class="tbl"><table id="projTable"></table></div>
+    <div id="repNotes"></div>
+    <h3>Conclusão</h3>
+    <p id="repConc"></p>
+    <h3>Lotes anteriores deste galpão</h3>
+    <div id="histTec"></div>
+    <p class="foot">AgroZeca, acompanhamento de lotes de frango de corte. Projeções baseadas no ritmo real do lote e na curva padrão da linhagem; servem de apoio e não substituem a avaliação técnica no galpão.</p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module">
+/* ===== CONFIGURAÇÃO: preencha uma vez (veja o guia) ===== */
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyDgFXMczmPtGOQrJAQ7PPyOoKetzfQG1Z8",
+  authDomain:"avicontrole-2b44b.firebaseapp.com",
+  projectId:"avicontrole-2b44b",
+  appId:"1:337835306567:web:a9e2ddc7137bf5a7490b62"
+};
+const ADMIN_EMAIL="tia061196hen@gmail.com";          // o seu e-mail de administrador
+const CONTATO="o administrador";   // aparece nos avisos de vencimento
+/* ======================================================== */
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,getDocs,setDoc,collection,serverTimestamp,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const CLIENTE={nome:"",contato:CONTATO};
+let L={galpao:"Galpão 2",linhagem:"Ross 308",alojadas:30000,alojamento:new Date(2026,7,27)};
+const PADROES={
+  "Ross 308":{0:44,7:213,14:533,21:1012,28:1616,35:2296,42:2998},
+  "Cobb 500":{0:44,7:194,14:486,21:987,28:1598,35:2302,42:2992},
+  "Hubbard Efficiency Plus":{0:43,7:216,14:541,21:1035,28:1647,35:2330,42:3028}
+};
+let padrao=PADROES[L.linhagem];
+/* Consumo diário por ave (g), dias 1 a 56. Ross 308: Aviagen 2022 (as-hatched). Cobb 500: Cobb 2022 (as-hatched; dias 1-7 distribuídos a partir do acumulado de 180 g). */
+const CONSUMO_AVE={
+  "Ross 308":[12,16,20,24,27,31,35,39,44,48,52,57,62,67,72,77,83,88,94,100,105,111,117,122,128,134,139,145,150,156,161,166,171,176,180,185,189,193,197,201,204,207,211,213,216,219,221,223,225,227,229,230,231,233,233,234],
+  "Cobb 500":[13,17,22,26,29,34,39,40,44,50,57,64,73,80,84,91,98,105,111,118,125,131,137,143,149,154,160,165,169,174,178,183,187,191,194,198,202,206,209,213,217,220,224,228,232,236,239,243,247,250,253,256,258,260,261,262]
+};
+const padTab=(tab,d)=>{const ks=Object.keys(tab).map(Number);for(let i=0;i<ks.length-1;i++){if(d>=ks[i]&&d<=ks[i+1]){const t=(d-ks[i])/(ks[i+1]-ks[i]);return tab[ks[i]]+t*(tab[ks[i+1]]-tab[ks[i]])}}const u=ks[ks.length-1],a=ks[ks.length-2];return tab[u]+(d-u)*(tab[u]-tab[a])/(u-a)};
+/* Hubbard Efficiency Plus: estimativa (curva Ross ajustada pela razão entre os pesos padrão) */
+CONSUMO_AVE["Hubbard Efficiency Plus"]=CONSUMO_AVE["Ross 308"].map((v,i)=>Math.round(v*padTab(PADROES["Hubbard Efficiency Plus"],i+1)/padTab(PADROES["Ross 308"],i+1)));
+const consumoAveDia=d=>{const t=CONSUMO_AVE[L.linhagem]||CONSUMO_AVE["Ross 308"];return t[Math.min(Math.max(d,1),t.length)-1]};
+let S={
+  idade:28,
+  pesos:{0:44,7:205,14:512,21:975,28:1560},
+  racaoAt:{7:5100,14:15600,21:32800,28:57400},
+  racaoTotal:57400,
+  mort:[38,45,52,40,33,28,24,20,18,19,17,16,15,14,14,13,15,12,13,14,12,16,15,17,18,16,19,21],
+  consumos:[3280,3350,3420,3500,3580,3690,3780],
+  estoque:14200
+};
+const CATS=["Aquecimento (lenha e gás)","Energia elétrica","Mão de obra","Cama (maravalha)","Manutenção","Água","Outros"];
+S.gastos=[
+  {id:1,cat:"Cama (maravalha)",desc:"Maravalha para o alojamento",val:6000,data:"2026-08-22"},
+  {id:2,cat:"Aquecimento (lenha e gás)",desc:"Carga de lenha",val:4800,data:"2026-08-25"},
+  {id:3,cat:"Aquecimento (lenha e gás)",desc:"Carga de lenha",val:3600,data:"2026-09-06"},
+  {id:4,cat:"Aquecimento (lenha e gás)",desc:"Gás para campânulas",val:1800,data:"2026-08-26"},
+  {id:5,cat:"Energia elétrica",desc:"Conta de luz de agosto",val:3900,data:"2026-09-05"},
+  {id:6,cat:"Mão de obra",desc:"Funcionário, setembro",val:2750,data:"2026-09-05"},
+  {id:7,cat:"Mão de obra",desc:"Funcionário, agosto (proporcional)",val:2750,data:"2026-08-30"},
+  {id:8,cat:"Manutenção",desc:"Troca de bico de bebedouro",val:1250,data:"2026-09-12"}
+];
+let gastoId=100;
+let SILO={cap:25000,pedido:10000,margem:1000};
+const G={granja:"Granja Boa Vista"};
+const GALPOES=[{L,S,SILO,hist:[]}];let cur=0,cfgIdx=0;
+function useGalpao(i){cur=i;({L,S,SILO}=GALPOES[i]);padrao=PADROES[L.linhagem]}
+let FB=null,alvoUid=null,loaded=false,lastJs="",saveTimer=null,pend=null,saveChain=Promise.resolve(),souAdmin=false;
+const snapshot=()=>JSON.stringify({G,cur,gastoId,galpoes:GALPOES.map(g=>({L:{...g.L,alojamento:isoD(g.L.alojamento)},S:g.S,SILO:g.SILO,hist:g.hist||[]}))});
+function save(){
+  if(!loaded||!alvoUid)return;
+  const js=snapshot();if(js===lastJs)return;lastJs=js;
+  if(bloqueado)return;
+  pend={uid:alvoUid,js};clearTimeout(saveTimer);saveTimer=setTimeout(flush,700);
+}
+function flush(){
+  clearTimeout(saveTimer);if(!pend)return saveChain;
+  const p=pend;pend=null;
+  saveChain=saveChain.then(()=>setDoc(doc(FB.db,"agz_clientes",p.uid),{json:p.js,salvoEm:serverTimestamp()})).catch(()=>toast("Não foi possível salvar. Confira a internet e tente de novo."));
+  return saveChain;
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush()});
+const isoD=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const parseD=t=>{const [y,m,d]=t.split("-").map(Number);return new Date(y,m-1,d)};
+function migraS(S){
+  if(Array.isArray(S.dias)){if(S.estoqueInicial==null)S.estoqueInicial=0;recalcula(S);return S}
+  const cons=S.consumos||[],mort=S.mort||[],n=Math.max(mort.length,S.idade||0);
+  S.dias=[];
+  for(let i=0;i<n;i++){const dia=i+1;S.dias.push({mort:mort[i]||0,leitura:null,carga:0,consumo:cons[i]!=null?cons[i]:0,peso:S.pesos&&S.pesos[dia]?S.pesos[dia]:null})}
+  S.estoqueInicial=(S.estoque||0)+S.dias.reduce((a,d)=>a+d.consumo,0);
+  recalcula(S);return S;
+}
+function parseDec(t){
+  if(t==null)return null;t=String(t).trim().replace(/\s/g,"");if(t==="")return null;
+  if(t.includes(",")&&t.includes("."))t=t.replace(/\./g,"").replace(",",".");else t=t.replace(",",".");
+  const v=Number(t);return isFinite(v)?v:NaN;
+}
+const fmtM3=v=>v==null?"":v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+function recalculaAgua(S,teste){
+  const n=S.dias.length,agua=new Array(n).fill(null);
+  let lastH=S.hidroInicial!=null?S.hidroInicial:null,lastIdx=-1;
+  for(let i=0;i<n;i++){
+    const h=S.dias[i].hidro;if(h==null)continue;
+    if(lastH!=null){const diff=h-lastH;if(diff<0)return {erro:i+1,tipo:"agua"};const por=diff*1000/(i-lastIdx);for(let k=lastIdx+1;k<=i;k++)agua[k]=por}
+    lastH=h;lastIdx=i;
+  }
+  if(!teste){S.agua=agua;S.hidroUlt=lastH}
+  return {ok:true};
+}
+function recalcula(S,teste){
+  let est=S.estoqueInicial||0,tot=0;const mort=[],elim=[],cons=[],pesos={0:S.pesos[0]},racaoAt={};
+  for(let i=0;i<S.dias.length;i++){
+    const d=S.dias[i],dia=i+1;
+    const c=d.leitura==null?(d.consumo||0):est+(d.carga||0)-d.leitura;
+    if(c<0)return {erro:dia};
+    est=d.leitura==null?est+(d.carga||0)-c:d.leitura;
+    tot+=c;mort.push(d.mort||0);elim.push(d.elim||0);cons.push(c);
+    if(d.peso>0){pesos[dia]=d.peso;racaoAt[dia]=tot}
+  }
+  const ra=recalculaAgua(S,teste);if(ra.erro)return ra;
+  if(teste)return {ok:true};
+  Object.assign(S,{mort,elim,consumos:cons,racaoTotal:tot,estoque:est,pesos,racaoAt,idade:S.dias.length});
+  return {ok:true};
+}
+function restore(o){
+  if(!o||!Array.isArray(o.galpoes)||!o.galpoes.length)throw new Error("arquivo inválido");
+  G.granja=o.G?.granja||"";gastoId=o.gastoId||100;
+  GALPOES.length=0;
+  o.galpoes.forEach(g=>GALPOES.push({L:{...g.L,alojamento:parseD(g.L.alojamento)},S:migraS(g.S),SILO:g.SILO,hist:g.hist||[]}));
+  useGalpao(Math.min(o.cur||0,GALPOES.length-1));
+}
+function novoGalpao(){
+  let n=GALPOES.length+1;while(GALPOES.some(g=>g.L.galpao===`Galpão ${n}`))n++;
+  return {L:{galpao:`Galpão ${n}`,linhagem:"Ross 308",alojadas:30000,alojamento:(()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate())})()},
+    S:{idade:0,pesos:{0:44},racaoAt:{},racaoTotal:0,mort:[],consumos:[],estoque:0,gastos:[],dias:[],estoqueInicial:0},
+    SILO:{cap:25000,pedido:10000,margem:1000},hist:[]};
+}
+const $=id=>document.getElementById(id);
+const nf=(n,d=0)=>n.toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const dateAt=d=>{const x=new Date(L.alojamento);x.setDate(x.getDate()+d);return x.toLocaleDateString("pt-BR")};
+const padraoAt=d=>{const ks=Object.keys(padrao).map(Number);for(let i=0;i<ks.length-1;i++){if(d>=ks[i]&&d<=ks[i+1]){const t=(d-ks[i])/(ks[i+1]-ks[i]);return padrao[ks[i]]+t*(padrao[ks[i+1]]-padrao[ks[i]])}}return padrao[42]};
+const mortAte=d=>S.mort.slice(0,d).reduce((a,b)=>a+b,0);
+const elimAte=d=>(S.elim||[]).slice(0,d).reduce((a,b)=>a+b,0);
+const perdasAte=d=>mortAte(d)+elimAte(d);
+const vivas=d=>L.alojadas-perdasAte(d);
+const pesoAges=()=>Object.keys(S.pesos).map(Number).sort((a,b)=>a-b);
+const ultimaPesagem=()=>{const a=pesoAges();return a[a.length-1]};
+const conv=d=>S.racaoAt[d]?S.racaoAt[d]/(vivas(d)*S.pesos[d]/1000):null;
+const viabAt=d=>vivas(d)/L.alojadas*100;
+const iep=d=>{const c=conv(d);return c?viabAt(d)*(S.pesos[d]/1000)/(d*c)*100:null};
+const gmd=d=>d?(S.pesos[d]-S.pesos[0])/d:0;
+const consumoMedio=()=>{const c=S.consumos.slice(-7);return c.length?c.reduce((a,b)=>a+b,0)/c.length:0};
+
+function projection(){
+  const d=ultimaPesagem(),p=S.pesos[d];
+  const peso42=p*padrao[42]/padraoAt(d);
+  const mortDia=S.mort.length?S.mort.slice(-7).reduce((a,b)=>a+b,0)/Math.min(7,S.mort.length):0;
+  const mort42=perdasAte(S.idade)+mortDia*(42-S.idade);
+  const viv42=L.alojadas-mort42;
+  const c=conv(d)||1.3;const conv42=c*1.21;
+  return {peso42,mortDia,mort42,viv42,viab42:viv42/L.alojadas*100,conv42,racao42:viv42*peso42/1000*conv42};
+}
+
+function avaliarLote(){
+  const it=[],bons=[],idade=S.idade,viv=vivas(idade),soma=a=>a.reduce((t,v)=>t+(v||0),0);
+  if(idade<3)return {it,bons,poucos:true};
+  /* ---- peso ---- */
+  const pa=pesoAges().filter(a=>a>0);
+  if(pa.length){
+    const d=pa[pa.length-1],df=(S.pesos[d]/padraoAt(d)-1)*100;
+    const dicasPeso=["Conferir a temperatura na altura das aves e a ventilação: frio ou calor reduzem o ganho de peso.","Verificar se há ração o tempo todo nos comedouros e se a linha não está entupida.","Ajustar a altura de comedouros e bebedouros à altura do dorso das aves.","Conferir a vazão e a pressão da água: ave que bebe pouco come pouco.","Revisar o programa de luz e a densidade do galpão.","Se o problema continuar, pedir avaliação sanitária e necropsia ao técnico."];
+    let ant=null;if(pa.length>1){const d0=pa[pa.length-2];ant=(S.pesos[d0]/padraoAt(d0)-1)*100}
+    if(df<-7)it.push({n:"alerta",t:`Peso ${nf(Math.abs(df),1)}% abaixo do padrão aos ${d} dias`,x:`Média de ${nf(S.pesos[d])} g contra ${nf(padraoAt(d))} g esperados para ${L.linhagem}.`,d:dicasPeso});
+    else if(df<-3)it.push({n:"atencao",t:`Peso ${nf(Math.abs(df),1)}% abaixo do padrão aos ${d} dias`,x:`Média de ${nf(S.pesos[d])} g contra ${nf(padraoAt(d))} g esperados. Vale agir agora, antes que a diferença aumente.`,d:dicasPeso});
+    else bons.push(df>2?`peso acima do padrão (+${nf(df,1)}%)`:"peso no padrão da linhagem");
+    if(ant!=null&&df-ant>=2&&df<-3)it.push({n:"ok",t:"O peso está se aproximando do padrão",x:`Passou de ${nf(ant,1)}% para ${nf(df,1)}% em relação ao padrão desde a pesagem anterior. As correções estão funcionando.`});
+    if(idade-d>=8)it.push({n:"atencao",t:"Hora de pesar o lote",x:`A última pesagem foi aos ${d} dias. Pesar toda semana ajuda a corrigir o manejo a tempo.`});
+    /* conversão */
+    const c=conv(d);
+    if(c){let cf=0;for(let i=1;i<=d;i++)cf+=consumoAveDia(i);const cp=cf/padraoAt(d);
+      if(c>cp*1.08)it.push({n:"atencao",t:`Conversão de ${nf(c,2)} aos ${d} dias, acima da esperada (${nf(cp,2)})`,x:"As aves estão gastando mais ração para cada kg de peso.",d:["Conferir desperdício: comedouros muito baixos ou cheios demais, ração no chão.","Confirmar se as leituras do silo e as cargas estão lançadas certas.","Frio aumenta o consumo sem aumentar o peso: revisar o aquecimento.","Avaliar a qualidade da ração e a sanidade do lote com o técnico."]});
+      else bons.push("conversão alimentar boa");}
+  }else if(idade>=8)it.push({n:"atencao",t:"Nenhuma pesagem lançada",x:"Lance o peso médio na aba Lançar dia para acompanhar o lote contra o padrão da linhagem."});
+  /* ---- ração ---- */
+  const {real,prev}=consumoSeries();
+  const ult=real.slice(-7).filter(r=>{const dd=S.dias[r.d-1];return dd&&dd.leitura!=null});
+  if(ult.length>=3){
+    const r=soma(ult.map(x=>x.kg)),pv=soma(ult.map(x=>prev[x.d-1].kg)),df=pv?(r/pv-1)*100:0;
+    const dBaixo=["Calor derruba o consumo: conferir ventilação, nebulização e horário mais quente.","Verificar se falta ração nas linhas ou nos comedouros e se o motor do silo está funcionando.","Conferir a água: pouca água reduz o consumo de ração.","Observar sinais de doença, como aves apáticas, diarreia ou problemas respiratórios, e acionar o técnico."];
+    const dAlto=["Procurar desperdício: ração no chão, comedouros baixos ou cheios demais.","Frio faz as aves comerem mais para se aquecer: revisar o aquecimento.","Conferir se a leitura do silo e as cargas foram lançadas corretamente."];
+    if(df<-15)it.push({n:"alerta",t:`Consumo de ração ${nf(Math.abs(df),1)}% abaixo do previsto`,x:`${nf(r)} kg nos últimos ${ult.length} dias contra ${nf(pv)} kg esperados para as aves vivas.`,d:dBaixo});
+    else if(df<-8)it.push({n:"atencao",t:`Consumo de ração ${nf(Math.abs(df),1)}% abaixo do previsto`,x:`${nf(r)} kg nos últimos ${ult.length} dias contra ${nf(pv)} kg esperados.`,d:dBaixo});
+    else if(df>20)it.push({n:"alerta",t:`Consumo de ração ${nf(df,1)}% acima do previsto`,x:`${nf(r)} kg nos últimos ${ult.length} dias contra ${nf(pv)} kg esperados.`,d:dAlto});
+    else if(df>10)it.push({n:"atencao",t:`Consumo de ração ${nf(df,1)}% acima do previsto`,x:`${nf(r)} kg nos últimos ${ult.length} dias contra ${nf(pv)} kg esperados.`,d:dAlto});
+    else bons.push("consumo de ração dentro do previsto");
+  }
+  /* ---- água ---- */
+  const ag=(S.agua||[]).map((v,i)=>({d:i+1,v})).filter(x=>x.v!=null);
+  if(ag.length>=4){
+    const u=ag[ag.length-1],p3=ag.slice(-4,-1),med=soma(p3.map(x=>x.v))/p3.length;
+    const u7=ag.slice(-7),rac=soma(u7.map(x=>S.consumos[x.d-1]||0)),rel=rac?soma(u7.map(x=>x.v))/rac:null;
+    if(u.d===idade&&med>0&&u.v<med*0.85)it.push({n:"alerta",t:`Consumo de água caiu ${nf((1-u.v/med)*100,0)}% hoje`,x:`${nf(u.v)} litros contra média de ${nf(med)} litros nos 3 dias anteriores. Queda de água costuma ser o primeiro sinal de problema.`,d:["Conferir se os bebedouros estão com água e com a pressão certa.","Procurar vazamentos, registros fechados ou filtros entupidos.","Observar o comportamento das aves e, se estiverem apáticas, acionar o técnico logo."]});
+    if(rel&&rel>2.3)it.push({n:"atencao",t:`Relação água : ração alta (${nf(rel,2)} L por kg)`,x:"As aves estão bebendo muito em relação ao que comem.",d:["Calor aumenta a água: reforçar ventilação e resfriamento.","Procurar vazamentos nos bebedouros, que também molham a cama.","Fezes muito líquidas podem indicar problema intestinal: avaliar com o técnico."]});
+    else if(rel&&rel<1.5)it.push({n:"atencao",t:`Relação água : ração baixa (${nf(rel,2)} L por kg)`,x:"As aves estão bebendo pouco em relação ao que comem.",d:["Conferir a pressão e a altura das linhas de bebedouro.","Verificar a qualidade e a temperatura da água.","Confirmar se as leituras do hidrômetro estão certas."]});
+    else if(rel)bons.push("consumo de água normal");
+  }
+  /* ---- mortalidade ---- */
+  const mt=S.mort||[],el=S.elim||[],dM=["Fazer necropsia das aves mortas para identificar a causa.","Conferir temperatura, ventilação e amônia: cheiro forte e cama úmida pedem correção.","Revisar a qualidade da água e da ração.","Acionar o técnico da integradora se a mortalidade continuar alta."];
+  if(idade<=7){
+    const pct=soma(mt)/L.alojadas*100,lim=idade/7;
+    if(pct>2.5*lim&&pct>0.5)it.push({n:"alerta",t:`Mortalidade alta na primeira semana (${nf(pct,2)}%)`,x:`${nf(soma(mt))} aves mortas em ${idade} dias. O esperado é até cerca de 1,5% na primeira semana.`,d:["Conferir a temperatura da cama e do ar: pintinho com frio se amontoa e não come.","Verificar se todos acham água e ração, com papel ou bandejas perto dos bebedouros.","Observar umbigo mal cicatrizado e saco vitelino: pode ser problema da origem dos pintinhos.","Fazer necropsia e informar o técnico."]});
+    else if(pct>1.5*lim&&pct>0.3)it.push({n:"atencao",t:`Mortalidade acima do normal na primeira semana (${nf(pct,2)}%)`,x:`${nf(soma(mt))} aves mortas em ${idade} dias.`,d:["Conferir temperatura, água e ração ao alcance dos pintinhos.","Fazer necropsia das aves mortas."]});
+    else bons.push("mortalidade da primeira semana normal");
+  }else{
+    const m3=soma(mt.slice(-3))/3,m7=mt.length>3?soma(mt.slice(-10,-3))/Math.min(7,mt.length-3):m3,taxa=m3/viv*100;
+    if(taxa>0.2)it.push({n:"alerta",t:`Mortalidade alta: ${nf(m3,0)} aves por dia`,x:`Média dos últimos 3 dias, ${nf(taxa,2)}% das aves vivas por dia. O normal depois da primeira semana é até cerca de 0,1% por dia.`,d:dM});
+    else if(taxa>0.1)it.push({n:"atencao",t:`Mortalidade acima do normal: ${nf(m3,0)} aves por dia`,x:`Média dos últimos 3 dias, ${nf(taxa,2)}% das aves vivas por dia.`,d:dM});
+    else if(m7>0&&m3>m7*1.5&&taxa>0.05)it.push({n:"atencao",t:"Mortalidade subindo",x:`Média de ${nf(m3,0)} aves por dia nos últimos 3 dias, contra ${nf(m7,0)} nos dias anteriores.`,d:dM});
+    else bons.push("mortalidade baixa");
+  }
+  const e7=soma(el.slice(-7));
+  if(e7>viv*0.005)it.push({n:"atencao",t:`Muitas eliminações: ${nf(e7)} aves nos últimos 7 dias`,x:"Vale entender a causa dos descartes.",d:["Anotar o motivo das eliminações: refugo, problema de perna, onfalite ou lesões.","Refugos em quantidade podem indicar problema de pintinho, de temperatura no início ou de ração.","Problemas de perna podem vir de crescimento rápido, cama ruim ou falta de minerais: conversar com o técnico."]});
+  return {it,bons};
+}
+function renderAvaliacao(){
+  const {it,bons,poucos}=avaliarLote(),box=$("avaliacao");
+  if(poucos){box.innerHTML=`<div class="aval-top"><h2>Avaliação do lote</h2></div><p class="sub" style="margin:0">A avaliação aparece a partir do terceiro dia lançado.</p>`;return}
+  const prob=it.filter(x=>x.n!=="ok"),nAl=prob.filter(x=>x.n==="alerta").length;
+  const pill=nAl?'<span class="pill alert">Precisa de atenção</span>':prob.length?'<span class="pill warn">Pontos a acompanhar</span>':'<span class="pill ok">Tudo certo</span>';
+  const ord={alerta:0,atencao:1,ok:2};
+  let h=`<div class="aval-top"><h2>Avaliação do lote</h2>${pill}</div>`;
+  if(!prob.length)h+=`<div class="aval-item"><span class="dot ok"></span><div><b>Parabéns! O lote está no caminho certo.</b><p>${bons.length?"Tudo dentro do esperado para "+L.linhagem+": "+bons.join(", ")+".":"Nenhum ponto fora do esperado."} Continue com o mesmo manejo.</p></div></div>`;
+  [...it].sort((a,b)=>ord[a.n]-ord[b.n]).forEach(x=>{
+    h+=`<div class="aval-item"><span class="dot ${x.n}"></span><div><b>${x.t}</b><p>${x.x}</p>${x.d?`<details><summary>O que fazer (toque para ver)</summary><ul>${x.d.map(t=>`<li>${t}</li>`).join("")}</ul></details>`:""}</div></div>`;
+  });
+  if(prob.length&&bons.length)h+=`<p class="aval-ok">Dentro do esperado: ${bons.join(", ")}.</p>`;
+  h+=`<p class="aval-nota">Orientações gerais de manejo. Não substituem a avaliação do técnico no galpão.</p>`;
+  box.innerHTML=h;
+}
+function renderHoje(){
+  $("farm").textContent=G.granja;
+  renderAvaliacao();
+  const d=ultimaPesagem(),p=S.pesos[d],pd=padraoAt(d),diff=(p/pd-1)*100;
+  const txt=Math.abs(diff)<1.5?"no ritmo do padrão":(diff<0?`${nf(Math.abs(diff),1)}% abaixo do padrão`:`${nf(diff,1)}% acima do padrão`);
+  $("verdict").innerHTML=d?`Lote <span class="gap">${txt}</span> ${L.linhagem} aos ${d} dias`:`${L.galpao} alojado, aguardando a primeira pesagem`;
+  $("verdict-sub").textContent=`Peso médio de ${nf(p)} g contra ${nf(pd)} g esperados. Hoje o lote está com ${S.idade} dias (${dateAt(S.idade)}).`;
+  drawWeight();drawConsumo();drawAgua();drawMort();drawSilo();
+  const c=conv(d);
+  $("stats").innerHTML=[
+    [nf(vivas(S.idade)),"aves vivas"],
+    [nf(vivas(S.idade)/L.alojadas*100,2)+"%","viabilidade"],
+    [c?nf(c,2):"–",`conversão aos ${d} dias`],
+    [iep(d)?nf(iep(d)):"–",`IEP aos ${d} dias`],
+    [d?nf(gmd(d),1)+" g":"–","ganho de peso por dia (média do lote)"],
+    [nf(consumoMedio()),"kg de ração por dia (média 7 dias)"]
+  ].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+}
+
+function consumoSeries(){
+  const idade=S.idade,real=[],prev=[];
+  const md=S.mort.length?S.mort.slice(-7).reduce((a,b)=>a+b,0)/Math.min(7,S.mort.length):0;
+  const fim=Math.max(42,idade+3);
+  for(let d=1;d<=fim;d++){
+    let vivas;
+    if(d<=idade)vivas=L.alojadas-perdasAte(d-1)-((S.mort[d-1]||0)+((S.elim||[])[d-1]||0))/2;
+    else vivas=L.alojadas-perdasAte(idade)-md*(d-idade-0.5);
+    prev.push({d,kg:Math.max(0,vivas)*consumoAveDia(d)/1000});
+    if(d<=idade)real.push({d,kg:S.consumos[d-1]||0});
+  }
+  return {real,prev};
+}
+function drawConsumo(){
+  const {real,prev}=consumoSeries(),n=real.length;
+  if(n){
+    const soma=(a,i0,i1)=>a.slice(i0,i1).reduce((t,p)=>t+p.kg,0);
+    const i0=Math.max(0,n-7),r7=soma(real,i0,n),p7=soma(prev,i0,n),rt=soma(real,0,n),pt=soma(prev,0,n);
+    const df=p7?(r7/p7-1)*100:0,dft=pt?(rt/pt-1)*100:0;
+    const txt=Math.abs(df)<3?"dentro do previsto":df<0?`${nf(Math.abs(df),1)}% abaixo do previsto`:`${nf(df,1)}% acima do previsto`;
+    $("consumoResumo").textContent=`Últimos ${n-i0} dias: ${nf(r7)} kg consumidos, ${txt} (${nf(p7)} kg) para as aves vivas. No lote: ${nf(rt)} kg reais contra ${nf(pt)} kg previstos (${dft>0?"+":""}${nf(dft,1)}%).`;
+  }else $("consumoResumo").textContent=`A linha tracejada mostra o consumo previsto para ${L.linhagem} com as aves alojadas. O consumo real aparece conforme os dias forem lançados.`;
+  const W=600,H=270,pl=52,pr=14,pt=26,pb=30,maxD=prev.length;
+  const vmax=Math.max(...prev.map(p=>p.kg),...real.map(p=>p.kg),100);
+  const passo=vmax>6000?2000:vmax>3000?1000:vmax>1200?500:vmax>500?200:100,maxV=Math.ceil(vmax*1.08/passo)*passo;
+  const x=d=>pl+d/maxD*(W-pl-pr),y=v=>H-pb-v/maxV*(H-pt-pb);
+  let g="";
+  for(let v=0;v<=maxV;v+=passo)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${nf(v)}</text>`;
+  g+=`<text x="4" y="12" font-size="11" fill="var(--muted)">kg por dia</text>`;
+  for(let d=7;d<=maxD;d+=7)g+=`<text x="${x(d)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${d}d</text>`;
+  if(S.idade>0&&S.idade<maxD)g+=`<line x1="${x(S.idade)}" x2="${x(S.idade)}" y1="${pt}" y2="${H-pb}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${x(S.idade)+4}" y="${pt+10}" font-size="11" fill="var(--muted)">hoje</text>`;
+  g+=`<polyline fill="none" stroke="var(--zinc)" stroke-width="2.5" stroke-dasharray="6 5" points="${prev.map(p=>x(p.d)+","+y(p.kg)).join(" ")}"/>`;
+  if(n){
+    g+=`<polyline fill="none" stroke="var(--corn)" stroke-width="3" stroke-linejoin="round" points="${real.map(p=>x(p.d)+","+y(p.kg)).join(" ")}"/>`;
+    if(n<=21)g+=real.map(p=>`<circle cx="${x(p.d)}" cy="${y(p.kg)}" r="3" fill="var(--surface)" stroke="var(--corn)" stroke-width="2"><title>Dia ${p.d}: ${nf(p.kg)} kg</title></circle>`).join("");
+    else{const u=real[n-1];g+=`<circle cx="${x(u.d)}" cy="${y(u.kg)}" r="4.5" fill="var(--surface)" stroke="var(--corn)" stroke-width="2.5"/>`}
+  }
+  $("consumoChart").innerHTML=g;
+}
+function drawAgua(){
+  if(!Array.isArray(S.agua))recalcula(S);
+  const rel=L.relAgua||1.8,{real:realR,prev}=consumoSeries();
+  const esp=prev.map(p=>({d:p.d,v:p.kg*rel}));
+  const real=[];(S.agua||[]).forEach((v,i)=>{if(v!=null)real.push({d:i+1,v})});
+  const n=real.length;
+  if(n){
+    const ult=real.slice(-7),dias=ult.map(p=>p.d);
+    const rs=ult.reduce((a,p)=>a+p.v,0),es=dias.reduce((a,d)=>a+esp[d-1].v,0);
+    const racao=dias.reduce((a,d)=>a+(S.consumos[d-1]||0),0);
+    const df=es?(rs/es-1)*100:0;
+    const txt=Math.abs(df)<5?"dentro do esperado":df<0?`${nf(Math.abs(df),1)}% abaixo do esperado`:`${nf(df,1)}% acima do esperado`;
+    $("aguaResumo").textContent=`Últimos ${ult.length} dias com leitura: ${nf(rs)} litros, ${txt} (${nf(es)} litros). Relação água : ração real de ${racao?nf(rs/racao,2):"–"} litros por kg (esperado ${nf(rel,1)}).`;
+  }else $("aguaResumo").textContent=S.hidroUlt!=null||S.hidroInicial!=null?"O consumo de água aparece a partir da próxima leitura do hidrômetro.":"Lance a leitura do hidrômetro na aba Lançar dia para acompanhar o consumo de água. A linha tracejada mostra o esperado.";
+  const W=600,H=270,pl=58,pr=14,pt=26,pb=30,maxD=esp.length;
+  const vmax=Math.max(...esp.map(p=>p.v),...real.map(p=>p.v),100);
+  const passo=vmax>12000?4000:vmax>6000?2000:vmax>3000?1000:vmax>1200?500:200,maxV=Math.ceil(vmax*1.08/passo)*passo;
+  const x=d=>pl+d/maxD*(W-pl-pr),y=v=>H-pb-v/maxV*(H-pt-pb);
+  let g=`<text x="4" y="12" font-size="11" fill="var(--muted)">litros por dia</text>`;
+  for(let v=0;v<=maxV;v+=passo)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${nf(v)}</text>`;
+  for(let d=7;d<=maxD;d+=7)g+=`<text x="${x(d)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${d}d</text>`;
+  if(S.idade>0&&S.idade<maxD)g+=`<line x1="${x(S.idade)}" x2="${x(S.idade)}" y1="${pt}" y2="${H-pb}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${x(S.idade)+4}" y="${pt+10}" font-size="11" fill="var(--muted)">hoje</text>`;
+  g+=`<polyline fill="none" stroke="var(--zinc)" stroke-width="2.5" stroke-dasharray="6 5" points="${esp.map(p=>x(p.d)+","+y(p.v)).join(" ")}"/>`;
+  if(n){
+    g+=`<polyline fill="none" stroke="#2B8BD0" stroke-width="3" stroke-linejoin="round" points="${real.map(p=>x(p.d)+","+y(p.v)).join(" ")}"/>`;
+    if(n<=21)g+=real.map(p=>`<circle cx="${x(p.d)}" cy="${y(p.v)}" r="3" fill="var(--surface)" stroke="#2B8BD0" stroke-width="2"><title>Dia ${p.d}: ${nf(p.v)} L</title></circle>`).join("");
+    else{const u=real[n-1];g+=`<circle cx="${x(u.d)}" cy="${y(u.v)}" r="4.5" fill="var(--surface)" stroke="#2B8BD0" stroke-width="2.5"/>`}
+  }
+  $("aguaChart").innerHTML=g;
+}
+function drawWeight(){
+  const W=600,H=280,pl=48,pr=14,pt=10,pb=30,maxD=42,maxP=3200;
+  const x=d=>pl+d/maxD*(W-pl-pr),y=v=>H-pb-v/maxP*(H-pt-pb);
+  let g="";
+  for(let v=0;v<=3000;v+=1000){g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-8}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${v?nf(v/1000)+" kg":"0"}</text>`}
+  for(let d=0;d<=42;d+=7)g+=`<text x="${x(d)}" y="${H-8}" text-anchor="middle" font-size="12" fill="var(--muted)">${d}d</text>`;
+  const pk=Object.keys(padrao).map(Number);
+  g+=`<polyline fill="none" stroke="var(--zinc)" stroke-width="2.5" stroke-dasharray="6 5" points="${pk.map(d=>x(d)+","+y(padrao[d])).join(" ")}"/>`;
+  const rk=pesoAges();
+  const pr42=projection().peso42,last=rk[rk.length-1];
+  g+=`<line x1="${x(last)}" y1="${y(S.pesos[last])}" x2="${x(42)}" y2="${y(pr42)}" stroke="var(--corn)" stroke-width="2" stroke-dasharray="2 5" opacity=".8"/>`;
+  g+=`<polyline fill="none" stroke="var(--corn)" stroke-width="3.5" stroke-linejoin="round" points="${rk.map(d=>x(d)+","+y(S.pesos[d])).join(" ")}"/>`;
+  g+=rk.map(d=>`<circle cx="${x(d)}" cy="${y(S.pesos[d])}" r="4.5" fill="var(--surface)" stroke="var(--corn)" stroke-width="2.5"/>`).join("");
+  g+=`<text x="${x(42)-4}" y="${y(pr42)+20}" text-anchor="end" font-size="12" fill="var(--muted)">projeção ${nf(pr42/1000,2)} kg</text>`;
+  $("weightChart").innerHTML=g;
+}
+
+function drawMort(){
+  const mt=S.mort||[],el=S.elim||[],n=mt.length;
+  const tm=mt.reduce((a,b)=>a+b,0),te=el.reduce((a,b)=>a+b,0);
+  $("mortResumo").textContent=n?`No lote: ${nf(tm)} ${tm===1?"ave morta":"aves mortas"} e ${nf(te)} ${te===1?"eliminada":"eliminadas"}, ${nf((tm+te)/L.alojadas*100,2)}% das aves alojadas.`:"";
+  if(!n){$("mortChart").innerHTML=`<text x="300" y="100" text-anchor="middle" font-size="15" fill="var(--muted)">Nenhuma mortalidade lançada ainda</text>`;return}
+  const W=600,H=190,pl=38,pr=8,pt=12,pb=26;
+  const vmax=Math.max(4,...mt,...el),passo=vmax>200?100:vmax>80?40:vmax>40?20:vmax>16?10:vmax>8?4:2,max=Math.ceil(vmax*1.1/passo)*passo;
+  const slot=(W-pl-pr)/Math.max(n,14),bw=Math.min(7,Math.max(1.5,slot*0.34)),gap=Math.min(2,slot*0.08);
+  const y=v=>H-pb-v/max*(H-pt-pb);let g="";
+  for(let v=0;v<=max;v+=passo)g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;
+  for(let i=0;i<n;i++){
+    const cx=pl+slot*(i+0.5),m=mt[i]||0,e=el[i]||0;
+    if(m>0)g+=`<rect x="${cx-gap/2-bw}" y="${y(m)}" width="${bw}" height="${H-pb-y(m)}" rx="1.5" fill="var(--corn)"><title>Dia ${i+1}: ${m} mortas</title></rect>`;
+    if(e>0)g+=`<rect x="${cx+gap/2}" y="${y(e)}" width="${bw}" height="${H-pb-y(e)}" rx="1.5" fill="var(--alert)"><title>Dia ${i+1}: ${e} eliminadas</title></rect>`;
+    if((i+1)%7===0)g+=`<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">${i+1}d</text>`;
+  }
+  $("mortChart").innerHTML=g;
+}
+
+function drawSilo(){
+  const lvl=Math.max(0,Math.min(1,S.estoque/SILO.cap)),ped=SILO.pedido/SILO.cap;
+  const yTop=44,yBot=192,H=yBot-yTop,fy=yBot-lvl*H,py=yBot-ped*H;
+  const cm=consumoMedio(),dias=cm?(S.estoque-SILO.pedido)/cm:(S.estoque<=SILO.pedido?-1:Infinity),duracao=cm?S.estoque/cm:Infinity;
+  const pedir=SILO.cap-SILO.margem-Math.min(S.estoque,SILO.pedido);
+  const st=dias<=0?["alert","Pedir hoje"]:dias<2?["warn","Pedir em breve"]:["ok","Estoque tranquilo"];
+  const quando=!isFinite(dias)?"Sem consumo lançado ainda":dias<=0?"Estoque no ponto de pedido":dias<1.5?"Pedir ração amanhã":`Pedir ração em ${Math.floor(dias)} dias`;
+  const shape="M20 44 L65 14 L110 44 L110 160 L65 192 L20 160 Z";
+  const svg=`<svg class="silo-svg" viewBox="0 0 130 222" role="img" aria-label="Silo com ${nf(lvl*100)}% da capacidade">
+    <defs><clipPath id="siloClip"><path d="${shape}"/></clipPath></defs>
+    <line x1="30" y1="170" x2="24" y2="216" stroke="var(--zinc)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="100" y1="170" x2="106" y2="216" stroke="var(--zinc)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="8" y1="217" x2="122" y2="217" stroke="var(--line)" stroke-width="2"/>
+    <path d="${shape}" fill="var(--bg)"/>
+    <rect x="0" y="${fy}" width="130" height="${yBot-fy}" fill="var(--corn)" opacity=".9" clip-path="url(#siloClip)"/>
+    <g stroke="var(--line)" stroke-width="1" clip-path="url(#siloClip)" opacity=".7">${[70,96,122,148].map(y=>`<line x1="20" x2="110" y1="${y}" y2="${y}"/>`).join("")}</g>
+    <path d="${shape}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/>
+    <line x1="20" x2="110" y1="44" y2="44" stroke="var(--ink)" stroke-width="1.6"/>
+    <line x1="20" x2="110" y1="160" y2="160" stroke="var(--ink)" stroke-width="1.6"/>
+    <line x1="12" x2="118" y1="${py}" y2="${py}" stroke="var(--alert)" stroke-width="2" stroke-dasharray="5 3"/>
+    <text x="65" y="${py-5}" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--alert)" paint-order="stroke" stroke="var(--bg)" stroke-width="3">ponto de pedido</text>
+    <text x="65" y="112" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-size="26" font-weight="700" fill="var(--ink)" paint-order="stroke" stroke="var(--surface)" stroke-width="4">${nf(lvl*100)}%</text>
+  </svg>`;
+  const c7=S.consumos.slice(-7),mx=Math.max(1,...c7),bw=100/Math.max(1,c7.length);
+  const tend=c7[c7.length-1]>c7[0]*1.03?"subindo":c7[c7.length-1]<c7[0]*0.97?"caindo":"estável";
+  const bars=`<svg viewBox="0 0 280 44" style="width:100%;max-width:320px;height:auto;display:block" aria-hidden="true">${c7.map((v,i)=>{const h=Math.max(2,v/mx*34),sl=280/7,w=14;return `<rect x="${i*sl+(sl-w)/2}" y="${38-h}" width="${w}" height="${h}" rx="3" fill="${i===c7.length-1?"var(--corn)":"var(--zinc)"}"><title>${nf(v)} kg</title></rect>`}).join("")}<line x1="0" x2="280" y1="38.5" y2="38.5" stroke="var(--line)"/></svg>`;
+  const fig=(b,s)=>`<div><b>${b}</b><span>${s}</span></div>`;
+  $("siloPanel").innerHTML=`
+    <div class="silo-top"><h3>${quando}</h3><span class="pill ${st[0]}">${st[1]}</span></div>
+    ${svg}
+    <div class="silo-figs">
+      ${fig(nf(S.estoque)+" kg",`no silo agora, de ${nf(SILO.cap)} kg`)}
+      ${isFinite(duracao)?fig(nf(duracao,1)+" dias",`de ração; acaba por volta de ${dateAt(S.idade+Math.ceil(duracao))}`):fig("–","dias de ração; lance o primeiro dia para calcular")}
+      ${fig(dias<=0?"Hoje":!isFinite(dias)?"–":dateAt(S.idade+Math.floor(dias)),`pedir até essa data, ao chegar em ${nf(SILO.pedido)} kg`)}
+      ${fig(nf(pedir)+" kg","pedido sugerido para encher o silo")}
+    </div>
+    <div class="silo-cons">${c7.length?`<p>Consumo dos últimos 7 dias: média de ${nf(cm)} kg por dia, ${tend}</p>${bars}`:"<p>O consumo aparece aqui depois do primeiro lançamento do dia.</p>"}</div>
+    <p class="silo-foot">Deixa ${nf(SILO.margem)} kg de folga para a carga não derramar.</p>`;
+}
+
+function renderRelatorio(){
+  const d=ultimaPesagem(),pr=projection();
+  $("repSub").textContent=`${G.granja}, ${L.galpao}. Emitido em ${dateAt(S.idade)}, ${S.idade} dias de lote.`;
+  $("repMeta").innerHTML=[["Linhagem",L.linhagem],["Alojamento",dateAt(0)],["Aves alojadas",nf(L.alojadas)],["Aves vivas",nf(vivas(S.idade))],["Mortalidade acumulada",nf(mortAte(S.idade))],["Aves eliminadas",nf(elimAte(S.idade))],["Ração consumida",nf(S.racaoTotal)+" kg"]].map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join("");
+  const rows=pesoAges().filter(a=>a>0).map(a=>{const p=S.pesos[a],pd=padraoAt(a),df=(p/pd-1)*100,c=conv(a);
+    return `<tr><td>${a} dias</td><td>${nf(p)} g</td><td>${nf(pd)} g</td><td class="${df<-2?"neg":df>0?"pos":""}">${df>0?"+":""}${nf(df,1)}%</td><td>${nf(gmd(a),1)} g</td><td>${c?nf(c,2):"–"}</td><td>${nf(viabAt(a),2)}%</td><td>${iep(a)?nf(iep(a)):"–"}</td></tr>`}).join("");
+  $("repTable").innerHTML=`<thead><tr><th>Idade</th><th>Peso real</th><th>Padrão</th><th>Diferença</th><th>Ganho/dia</th><th>Conversão</th><th>Viabilidade</th><th>IEP</th></tr></thead><tbody>${rows}</tbody>`;
+  $("projTable").innerHTML=`<thead><tr><th>Indicador</th><th>Projeção</th><th>Referência</th></tr></thead><tbody>
+    <tr><td>Peso médio</td><td>${nf(pr.peso42/1000,2)} kg</td><td>${nf(padrao[42]/1000,2)} kg</td></tr>
+    <tr><td>Mortalidade e eliminação</td><td>${nf(pr.mort42)} aves</td><td>média de ${nf(pr.mortDia,1)} por dia na última semana</td></tr>
+    <tr><td>Viabilidade</td><td>${nf(pr.viab42,2)}%</td><td>acima de 96%</td></tr>
+    <tr><td>Conversão alimentar</td><td>${nf(pr.conv42,2)}</td><td>até 1,60</td></tr>
+    <tr><td>IEP</td><td>${nf(pr.viab42*(pr.peso42/1000)/(42*pr.conv42)*100)}</td><td>acima de 400</td></tr>
+    <tr><td>Ração total do lote</td><td>${nf(Math.round(pr.racao42/100)*100)} kg</td><td>faltam ${nf(Math.max(0,Math.round((pr.racao42-S.racaoTotal)/100)*100))} kg</td></tr></tbody>`;
+  const diff=(S.pesos[d]/padraoAt(d)-1)*100,viab=vivas(S.idade)/L.alojadas*100,c=conv(d);
+  const pos=[],att=[];
+  viab>=97?pos.push(`Viabilidade de ${nf(viab,2)}%, com mortalidade estável depois da primeira semana.`):att.push(`Viabilidade de ${nf(viab,2)}%, abaixo do esperado para a idade.`);
+  const ie=iep(d);
+  if(ie)(ie>=400?pos:att).push(`IEP de ${nf(ie)} aos ${d} dias, ${ie>=400?"acima":"abaixo"} da referência de 400.`);
+  if(c&&c<1.35)pos.push(`Conversão de ${nf(c,2)} aos ${d} dias, boa eficiência no uso da ração.`);
+  diff<-2?att.push(`Peso ${nf(Math.abs(diff),1)}% abaixo do padrão aos ${d} dias. Conferir ambiência, altura de comedouros e bebedouros e o consumo de água.`):pos.push(`Peso dentro da curva da linhagem aos ${d} dias.`);
+  const m7=S.mort.slice(-7),m14=S.mort.slice(-14,-7);
+  if(m14.length&&m7.reduce((a,b)=>a+b,0)>m14.reduce((a,b)=>a+b,0)*1.2)att.push("Mortalidade da última semana subiu em relação à anterior. Acompanhar de perto e registrar a causa das perdas.");
+  if((S.estoque-SILO.pedido)/consumoMedio()<2)att.push("Estoque do silo perto do ponto de pedido. Confirmar a próxima carga com a fábrica.");
+  $("repNotes").innerHTML=`<div class="note"><h3>Pontos positivos</h3><ul>${pos.map(x=>`<li>${x}</li>`).join("")}</ul></div>`+(att.length?`<div class="note warn"><h3>Pontos de atenção</h3><ul>${att.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"");
+  $("repConc").textContent=`Lote com boa viabilidade e boa conversão, mas ainda ${diff<-2?"abaixo":"dentro"} da curva de peso. No ritmo atual, a projeção é de ${nf(pr.peso42/1000,2)} kg aos 42 dias${pr.peso42<padrao[42]*0.97?", abaixo do padrão; vale avaliar estender o abate em 1 a 2 dias se o ganho diário não reagir nesta semana":""}.`;
+}
+
+let editDia=null,verTodosDias=false;
+function renderLancar(){
+  if(!Array.isArray(S.dias))migraS(S);
+  if(editDia!=null&&editDia>=S.dias.length)editDia=null;
+  const ed=editDia!=null;
+  $("editBar").hidden=!ed;$("formBtn").textContent=ed?"Salvar alteração":"Salvar lançamento";
+  $("fSilo").required=!ed||S.dias[editDia].leitura!=null;
+  if(ed){
+    const d=S.dias[editDia];
+    $("lancarTitle").textContent=`Editando o dia ${editDia+1} (${dateAt(editDia+1)})`;
+    $("editTxt").textContent=d.leitura==null?"Este dia não tem leitura do silo registrada. Se deixar em branco, o consumo dele fica como está.":"Corrija o que precisar e salve.";
+  }else{
+    $("lancarTitle").textContent=`Lançamento do dia ${S.idade+1} (${dateAt(S.idade+1)})`;
+    $("fSilo").placeholder=`última leitura: ${nf(S.estoque)}`;
+    const hu=S.hidroUlt!=null?S.hidroUlt:S.hidroInicial;$("fAgua").placeholder=hu!=null?`última leitura: ${fmtM3(hu)}`:"ex.: 5006,44";
+  }
+  const n=S.dias.length,idx=[...Array(n).keys()].reverse(),mostrar=verTodosDias?idx:idx.slice(0,7);
+  $("histDias").innerHTML=n?mostrar.map(i=>{const d=S.dias[i],c=S.consumos[i];
+    const partes=[`${d.mort} ${d.mort===1?"morta":"mortas"}`,d.elim?`${d.elim} ${d.elim===1?"eliminada":"eliminadas"}`:null,d.leitura!=null?`silo ${nf(d.leitura)} kg`:"sem leitura do silo",d.carga?`carga ${nf(d.carga)} kg`:null,`consumo ${nf(c||0)} kg`,d.hidro!=null?`hidrômetro ${fmtM3(d.hidro)} m³`:null,S.agua&&S.agua[i]!=null?`água ${nf(S.agua[i])} L`:null,d.peso?`peso ${nf(d.peso)} g`:null].filter(Boolean).join(", ");
+    return `<div class="dia${i===editDia?" on":""}"><div><b>Dia ${i+1}, ${dateAt(i+1)}</b><span>${partes}</span>${d.obs?`<span style="color:var(--ink);font-style:italic">${esc(d.obs)}</span>`:""}</div><div class="galp-btns"><button type="button" class="sbtn" data-editdia="${i}">Editar</button>${i===n-1?`<button type="button" class="sbtn danger" data-deldia="${i}" aria-label="Excluir o dia ${i+1}">Excluir</button>`:""}</div></div>`}).join(""):'<p class="sub">Os dias lançados aparecem aqui.</p>';
+  $("verTodos").hidden=verTodosDias||n<=7;
+}
+const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fmtData=d=>{const [y,m,dd]=d.split("-");return `${dd}/${m}/${y}`};
+function renderFinanceiro(){
+  const total=S.gastos.reduce((a,g)=>a+g.val,0),viv=vivas(S.idade);
+  const d=ultimaPesagem(),kg=viv*S.pesos[d]/1000;
+  $("finHero").innerHTML=`<div class="lbl">Custo por ave alojada</div><div class="big">${brl(total/L.alojadas)}</div>
+    <div class="lbl">${brl(total)} gastos no lote, para ${nf(L.alojadas)} aves alojadas</div>
+    <div class="fin-row">
+      <div><b>${brl(total/viv)}</b><span>por ave viva hoje</span></div>
+      <div><b>${S.idade?brl(total/S.idade):"–"}</b><span>de gasto médio por dia de lote</span></div>
+      <div><b>${brl(total/kg)}</b><span>por kg de frango vivo hoje</span></div>
+    </div>`;
+  const by={};S.gastos.forEach(g=>by[g.cat]=(by[g.cat]||0)+g.val);
+  const cats=Object.entries(by).sort((a,b)=>b[1]-a[1]),mx=cats.length?cats[0][1]:1;
+  $("finCats").innerHTML=cats.length?cats.map(([c,v])=>`<div class="cat"><span>${c}</span><span><b>${brl(v)}</b> <small>${nf(v/total*100)}%</small></span><div class="bar"><i style="width:${v/mx*100}%"></i></div><small style="grid-column:1/-1">${brl(v/L.alojadas)} por ave alojada</small></div>`).join(""):`<p class="sub">Nenhum gasto lançado ainda. Use o formulário abaixo para lançar o primeiro.</p>`;
+  const list=[...S.gastos].sort((a,b)=>b.data.localeCompare(a.data));
+  save();
+  $("finList").innerHTML=list.length?list.map(g=>`<div class="gasto"><div><b>${g.desc}</b><span>${g.cat}, ${fmtData(g.data)}</span></div><div class="val">${brl(g.val)}</div><button class="del" data-id="${g.id}" aria-label="Excluir gasto ${g.desc}">×</button></div>`).join(""):`<p class="sub">Os gastos lançados aparecem aqui.</p>`;
+}
+function renderHist(){
+  const h=GALPOES[cur].hist||[];
+  if(!h.length){const e=`<p class="sub">Nenhum lote encerrado neste galpão ainda.</p>`;$("histTec").innerHTML=e;$("histFin").innerHTML=e;return}
+  const rs=[...h].reverse();
+  $("histTec").innerHTML=`<div class="tbl"><table><thead><tr><th>Lote</th><th>Abate</th><th>Idade</th><th>Peso</th><th>Conversão</th><th>Viabilidade</th><th>IEP</th><th></th></tr></thead><tbody>${rs.map(r=>`<tr><td>${r.lote}</td><td>${fmtData(r.abate)}</td><td>${r.idade} d</td><td>${nf(r.peso,3)} kg</td><td>${r.conv?nf(r.conv,2):"–"}</td><td>${nf(r.viab,2)}%</td><td>${r.iep?nf(r.iep):"–"}</td><td><button type="button" class="vbtn" data-lote="${r.lote}">Ver tudo</button></td></tr>`).join("")}</tbody></table></div>`;
+  $("histFin").innerHTML=`<div class="tbl"><table><thead><tr><th>Lote</th><th>Recebido</th><th>Gastos</th><th>Lucro</th><th>Lucro por ave</th><th>Custo por ave</th><th></th></tr></thead><tbody>${rs.map(r=>`<tr><td>${r.lote} (${fmtData(r.abate)})</td><td>${brl(r.valor)}</td><td>${brl(r.gastos)}</td><td class="${r.lucro<0?"neg":"pos"}">${brl(r.lucro)}</td><td class="${r.lucro<0?"neg":""}">${brl(r.lucro/r.alojadas)}</td><td>${brl(r.gastos/r.alojadas)}</td><td><button type="button" class="vbtn" data-lote="${r.lote}">Ver tudo</button></td></tr>`).join("")}</tbody></table></div><p class="sub" style="font-size:.85rem">Lucro = valor recebido da integração menos os gastos lançados no lote. Valores por ave consideram as aves alojadas.</p>`;
+}
+let loteVolta="relatorio";
+function renderLoteDet(num){
+  const h=GALPOES[cur].hist||[],idx=h.findIndex(x=>x.lote===num);if(idx<0)return false;
+  const r=h[idx],ant=idx>0?h[idx-1]:null,f=(v,fn)=>v==null||Number.isNaN(v)?"–":fn(v);
+  const cmp=(v,va,dec,menorMelhor,suf="")=>{if(va==null||v==null)return "";const d=v-va;if(Math.abs(d)<Math.pow(10,-dec)/2)return `<small>igual ao lote ${ant.lote}</small>`;const bom=menorMelhor?d<0:d>0;return `<small class="${bom?"pos":"neg"}">${d>0?"+":"−"}${nf(Math.abs(d),dec)}${suf} vs lote ${ant.lote}</small>`};
+  const kpi=(t,v,c="")=>`<div class="kpi"><span>${t}</span><b>${v}</b>${c}</div>`;
+  const kgv=r.kg||r.aves*r.peso,lpa=r.lucro/r.alojadas,lpaA=ant?ant.lucro/ant.alojadas:null;
+  const mortPct=r.mortT!=null?r.mortT/r.alojadas*100:null;
+  const dl=rows=>`<dl class="lista-dl">${rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>`;
+  const pes=(r.pesagens||[]).map(p=>{const df=(p.peso/p.padrao-1)*100;return `<tr><td>${p.d} dias</td><td>${nf(p.peso)} g</td><td>${nf(p.padrao)} g</td><td class="${df<-2?"neg":df>0?"pos":""}">${df>0?"+":""}${nf(df,1)}%</td><td>${p.conv?nf(p.conv,2):"–"}</td><td>${nf(p.viab,2)}%</td></tr>`}).join("");
+  const cats=Object.entries(r.gastosCat||{}).sort((a,b)=>b[1]-a[1]);
+  $("loteDet").innerHTML=`
+    <h2 style="margin-top:0">Lote ${r.lote}${r.galpao?`, ${r.galpao}`:""}</h2>
+    <p class="sub">${r.linhagem}. Alojado em ${fmtData(r.alojamento)}, abatido em ${fmtData(r.abate)}, com ${r.idade} dias.</p>
+    <div class="kpis">
+      ${kpi("Peso de saída",nf(r.peso,3)+" kg",cmp(r.peso,ant&&ant.peso,3,false," kg"))}
+      ${kpi("Conversão",f(r.conv,v=>nf(v,2)),cmp(r.conv,ant&&ant.conv,2,true))}
+      ${kpi("IEP",f(r.iep,v=>nf(v)),cmp(r.iep,ant&&ant.iep,0,false))}
+      ${kpi("Viabilidade",nf(r.viab,2)+"%",cmp(r.viab,ant&&ant.viab,2,false," pp"))}
+      ${kpi("Ganho por dia",f(r.gmd,v=>nf(v,1)+" g"),cmp(r.gmd,ant&&ant.gmd,1,false," g"))}
+      ${kpi("Lucro por ave",brl(lpa),lpaA==null?"":cmp(lpa,lpaA,2,false).replace(/([+−])([\d.,]+)/,(m,sg,v)=>sg+"R$ "+v))}
+    </div>
+    <h3>Produção</h3>
+    ${dl([["Aves alojadas",nf(r.alojadas)],["Aves carregadas",nf(r.aves)],["Mortalidade",r.mortT!=null?`${nf(r.mortT)} aves (${nf(mortPct,2)}%)`:"–"],["Eliminação",r.elimT!=null?`${nf(r.elimT)} aves (${nf(r.elimT/r.alojadas*100,2)}%)`:"–"],["Idade de abate",r.idade+" dias"],["Peso vivo total",nf(kgv)+" kg"],["Ração consumida",nf(r.racao)+" kg"],["Ração por ave carregada",nf(r.racao/r.aves,2)+" kg"],["Sobra recolhida",r.sobra!=null?nf(r.sobra)+" kg":"–"],["Água consumida",r.aguaT?nf(r.aguaT)+" litros":"–"],["Relação água : ração",r.relAgua?nf(r.relAgua,2)+" L/kg":"–"]])}
+    ${pes?`<h3>Pesagens</h3><div class="tbl"><table><thead><tr><th>Idade</th><th>Peso</th><th>Padrão</th><th>Diferença</th><th>Conversão</th><th>Viabilidade</th></tr></thead><tbody>${pes}</tbody></table></div>`:""}
+    <h3>Financeiro</h3>
+    ${dl([["Valor recebido da integração",brl(r.valor)],["Gastos do lote",brl(r.gastos)],["Lucro",`<span style="color:var(${r.lucro<0?"--alert":"--ok"})">${brl(r.lucro)}</span>`],["Lucro por ave alojada",brl(lpa)],["Custo por ave alojada",brl(r.gastos/r.alojadas)],["Custo por kg vivo",brl(r.gastos/kgv)],["Receita por kg vivo",brl(r.valor/kgv)]])}
+    ${cats.length?`<h3>Gastos por categoria</h3>${dl(cats.map(([c,v])=>[c,`${brl(v)} (${nf(v/r.gastos*100)}%)`]))}`:""}
+    ${r.mortT==null?`<p class="sub" style="font-size:.85rem">Este lote foi encerrado antes desta versão do app, por isso alguns dados aparecem como "–".</p>`:""}`;
+  return true;
+}
+function abreLote(num,de){if(renderLoteDet(num)){loteVolta=de;showTab("lote")}}
+$("histTec").addEventListener("click",e=>{const b=e.target.closest("[data-lote]");if(b)abreLote(+b.dataset.lote,"relatorio")});
+$("histFin").addEventListener("click",e=>{const b=e.target.closest("[data-lote]");if(b)abreLote(+b.dataset.lote,"financeiro")});
+$("loteVoltar").addEventListener("click",()=>showTab(loteVolta));
+function renderGalpaoSel(){
+  $("galpaoSel").innerHTML=GALPOES.map((g,i)=>`<option value="${i}"${i===cur?" selected":""}>${g.L.galpao}</option>`).join("");
+}
+function renderAll(){renderGalpaoSel();renderHoje();renderRelatorio();renderLancar();renderFinanceiro();renderHist();save()}
+
+function showTab(tab){
+  document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===tab));
+  ["hoje","lancar","relatorio","financeiro","config","lote"].forEach(t=>$("tab-"+t).hidden=t!==tab);
+  $("cfgBtn").setAttribute("aria-pressed",tab==="config");
+  window.scrollTo({top:0});
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+const isoDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+$("cLinhagem").innerHTML=Object.keys(PADROES).map(k=>`<option>${k}</option>`).join("");
+function renderGalpList(){
+  $("galpList").innerHTML=GALPOES.map((g,i)=>`<div class="galp${i===cfgIdx?" on":""}"><div><b>${g.L.galpao}</b><span>${g.L.linhagem}, ${nf(g.L.alojadas)} aves, ${g.S.idade} dias</span></div>
+    <div class="galp-btns"><button type="button" class="sbtn" data-edit="${i}">Editar</button>${GALPOES.length>1?`<button type="button" class="sbtn danger" data-del="${i}" aria-label="Excluir ${g.L.galpao}">Excluir</button>`:""}</div></div>`).join("");
+}
+function fillCfg(i){
+  cfgIdx=i;const g=GALPOES[i];
+  $("cfgEditing").textContent=`Editando: ${g.L.galpao}`;
+  $("cGranja").value=G.granja;$("cGalpao").value=g.L.galpao;$("cLinhagem").value=g.L.linhagem;
+  $("cAloj").value=isoDate(g.L.alojamento);$("cAves").value=g.L.alojadas;$("cPeso0").value=g.S.pesos[0];
+  $("cCap").value=g.SILO.cap;$("cPed").value=g.SILO.pedido;$("cMarg").value=g.SILO.margem;
+  $("cHidro").value=g.S.hidroInicial!=null?fmtM3(g.S.hidroInicial):"";$("cRelAgua").value=String(g.L.relAgua||1.8).replace(".",",");
+  renderGalpList();resetEnc();
+}
+$("cfgBtn").addEventListener("click",()=>{if($("cfgBtn").getAttribute("aria-pressed")==="true"){showTab("hoje");return}fillCfg(cur);showTab("config")});
+$("galpaoSel").addEventListener("change",e=>{editDia=null;useGalpao(+e.target.value);renderAll();if(!$("tab-config").hidden)fillCfg(cur)});
+$("addGalpao").addEventListener("click",()=>{
+  if(bloqueado){toast(msgBloq());return}
+  GALPOES.push(novoGalpao());fillCfg(GALPOES.length-1);renderGalpaoSel();save();
+  $("cfgEditing").scrollIntoView({behavior:"smooth",block:"start"});
+  toast(`${GALPOES[cfgIdx].L.galpao} criado. Preencha os dados e salve.`);
+});
+$("galpList").addEventListener("click",e=>{
+  const ed=e.target.closest("[data-edit]"),dl=e.target.closest("[data-del]");
+  if(ed){fillCfg(+ed.dataset.edit);$("cfgEditing").scrollIntoView({behavior:"smooth",block:"start"});return}
+  if(dl){
+    if(bloqueado){toast(msgBloq());return}
+    if(!dl.classList.contains("confirm")){dl.classList.add("confirm");dl.textContent="Confirmar";setTimeout(()=>{if(dl.isConnected){dl.classList.remove("confirm");dl.textContent="Excluir"}},4000);return}
+    const i=+dl.dataset.del,nome=GALPOES[i].L.galpao;GALPOES.splice(i,1);
+    useGalpao(Math.min(cur>i?cur-1:cur,GALPOES.length-1));fillCfg(cur);renderAll();toast(`${nome} excluído`);
+  }
+});
+$("cfgCancel").addEventListener("click",()=>showTab("hoje"));
+$("cfgForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(bloqueado){toast(msgBloq());return}
+  const cap=+$("cCap").value,ped=+$("cPed").value,marg=+$("cMarg").value,aves=+$("cAves").value;
+  if(ped+marg>=cap){toast("O ponto de pedido mais a margem precisa ser menor que a capacidade do silo.");return}
+  const g=GALPOES[cfgIdx];
+  if(aves<=g.S.mort.reduce((a,b)=>a+b,0)+(g.S.elim||[]).reduce((a,b)=>a+b,0)){toast("As aves alojadas precisam ser mais que a mortalidade e a eliminação já lançadas.");return}
+  const [y,m,d]=$("cAloj").value.split("-").map(Number);
+  G.granja=$("cGranja").value.trim();
+  Object.assign(g.L,{galpao:$("cGalpao").value.trim(),linhagem:$("cLinhagem").value,alojamento:new Date(y,m-1,d),alojadas:aves});
+  const hIni=parseDec($("cHidro").value),rel=parseDec($("cRelAgua").value);
+  if(Number.isNaN(hIni)){toast("A leitura inicial do hidrômetro não é um número válido. Use o formato 5006,44.");return}
+  if(!(rel>0)){toast("Informe a relação água : ração, por exemplo 1,8.");return}
+  const hOld=g.S.hidroInicial;g.S.hidroInicial=hIni;
+  if(recalculaAgua(g.S,true).erro){g.S.hidroInicial=hOld;toast("A leitura inicial do hidrômetro ficou maior que a primeira leitura lançada. Confira os números.");return}
+  g.L.relAgua=rel;
+  g.S.pesos[0]=+$("cPeso0").value;Object.assign(g.SILO,{cap,pedido:ped,margem:marg});recalcula(g.S);
+  useGalpao(cfgIdx);renderAll();showTab("hoje");toast(`${g.L.galpao} salvo`);
+});
+let encConfirm=false;
+function resetEnc(){
+  const g=GALPOES[cfgIdx];if(!g)return;
+  encConfirm=false;$("encForm").hidden=true;$("encOpen").hidden=false;$("encSubmit").textContent="Encerrar lote";
+  $("encTitle").textContent=`Encerrar lote de ${g.L.galpao}`;
+  $("encInfo").textContent=`Lote ${(g.hist||[]).length+1}, alojado em ${g.L.alojamento.toLocaleDateString("pt-BR")}, com ${g.S.idade} dias lançados. Ao encerrar, os resultados ficam guardados e o galpão começa o próximo lote com o silo zerado.`;
+}
+$("encOpen").addEventListener("click",()=>{
+  if(typeof bloqueado!=="undefined"&&bloqueado){toast(msgBloq());return}
+  const g=GALPOES[cfgIdx];
+  $("eData").value=isoDate(new Date());$("eAves").value=g.L.alojadas-g.S.mort.reduce((a,b)=>a+b,0)-(g.S.elim||[]).reduce((a,b)=>a+b,0);
+  $("ePeso").value="";$("eSobra").value=g.S.estoque;$("eValor").value="";
+  $("encForm").hidden=false;$("encOpen").hidden=true;$("ePeso").focus();
+});
+$("encCancel").addEventListener("click",resetEnc);
+$("encForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(typeof bloqueado!=="undefined"&&bloqueado){toast(msgBloq());return}
+  const g=GALPOES[cfgIdx];
+  const [y,m,d]=$("eData").value.split("-").map(Number),ab=new Date(y,m-1,d);
+  const idade=Math.round((ab-g.L.alojamento)/86400000);
+  const aves=+$("eAves").value,peso=+$("ePeso").value,sobra=+$("eSobra").value,valor=+$("eValor").value;
+  if(idade<1){toast("A data do abate precisa ser depois do alojamento.");return}
+  if(aves>g.L.alojadas){toast("As aves carregadas não podem passar das aves alojadas.");return}
+  if(!encConfirm){encConfirm=true;$("encSubmit").textContent="Toque de novo para confirmar";return}
+  const racao=g.S.racaoTotal+Math.max(0,g.S.estoque-sobra),kg=aves*peso;
+  const conv=racao>0?racao/kg:null,viab=aves/g.L.alojadas*100,iepF=conv?viab*peso/(idade*conv)*100:null;
+  const gastos=g.S.gastos.reduce((a,x)=>a+x.val,0),lucro=valor-gastos;
+  g.hist=g.hist||[];
+  const n=g.hist.length+1;
+  const sm=a=>(a||[]).reduce((t,v)=>t+(v||0),0);
+  const mortT=sm(g.S.mort),elimT=sm(g.S.elim);
+  let aguaT=0,racaoAg=0;(g.S.agua||[]).forEach((v,i)=>{if(v!=null){aguaT+=v;racaoAg+=g.S.consumos[i]||0}});
+  const gastosCat={};g.S.gastos.forEach(x=>gastosCat[x.cat]=(gastosCat[x.cat]||0)+x.val);
+  const pad=PADROES[g.L.linhagem]||PADROES["Ross 308"];
+  const pesagens=Object.keys(g.S.pesos).map(Number).filter(d=>d>0).sort((a,b)=>a-b).map(d=>{
+    const perd=sm((g.S.mort||[]).slice(0,d))+sm((g.S.elim||[]).slice(0,d)),viv=g.L.alojadas-perd,p=g.S.pesos[d],r=g.S.racaoAt[d];
+    return {d,peso:p,padrao:Math.round(padTab(pad,d)),conv:r&&viv>0?r/(viv*p/1000):null,viab:viv/g.L.alojadas*100};
+  });
+  g.hist.push({lote:n,galpao:g.L.galpao,linhagem:g.L.linhagem,alojamento:isoDate(g.L.alojamento),abate:isoDate(ab),alojadas:g.L.alojadas,aves,idade,peso,racao,conv,viab,iep:iepF,gastos,valor,lucro,
+    mortT,elimT,sobra,kg,gmd:(peso*1000-(g.S.pesos[0]||44))/idade,aguaT:aguaT||null,relAgua:racaoAg?aguaT/racaoAg:null,gastosCat,pesagens,peso0:g.S.pesos[0]||null});
+  const hUlt=g.S.hidroUlt!=null?g.S.hidroUlt:(g.S.hidroInicial!=null?g.S.hidroInicial:null);
+  g.S={idade:0,pesos:{0:g.S.pesos[0]},racaoAt:{},racaoTotal:0,mort:[],consumos:[],estoque:0,gastos:[],dias:[],estoqueInicial:0,hidroInicial:hUlt,agua:[],hidroUlt:hUlt};
+  g.L.alojamento=(()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate())})();
+  useGalpao(cur);fillCfg(cfgIdx);renderAll();
+  $("cfgEditing").scrollIntoView({behavior:"smooth",block:"start"});
+  toast(`Lote ${n} encerrado com lucro de ${brl(lucro)}. Agora preencha os dados do novo lote.`);
+});
+$("form").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(bloqueado){toast(msgBloq());return}
+  if(!Array.isArray(S.dias))migraS(S);
+  const obs=$("fObs").value.trim(),m=+$("fMort").value,el=+$("fElim").value||0,ls=$("fSilo").value.trim(),carga=+$("fCarga").value||0,peso=+$("fPeso").value||null;
+  const hidro=parseDec($("fAgua").value);
+  if(Number.isNaN(hidro)){toast("A leitura do hidrômetro não é um número válido. Use o formato 5006,44.");return}
+  if(editDia!=null){
+    const i=editDia,old=S.dias[i];
+    const novo={...old,obs,mort:m,elim:el,carga,peso,hidro,leitura:ls===""&&old.leitura==null?null:+ls};
+    S.dias[i]=novo;
+    const r=recalcula(S,true);
+    if(r.erro){S.dias[i]=old;toast(r.tipo==="agua"?`Com essa correção, a leitura do hidrômetro do dia ${r.erro} ficou menor que a anterior. Confira os números.`:`Com essa correção, a leitura do silo do dia ${r.erro} ficou maior que o estoque mais a carga. Confira os números.`);return}
+    recalcula(S);editDia=null;e.target.reset();$("fCarga").value=0;$("fElim").value=0;renderAll();
+    toast(`Dia ${i+1} corrigido. Indicadores recalculados.`);return;
+  }
+  const leitura=+ls;
+  const consumo=S.estoque+carga-leitura;
+  if(consumo<0){toast("A leitura do silo ficou maior que o estoque mais a carga. Confira os números.");return}
+  const hAnt=S.hidroUlt!=null?S.hidroUlt:S.hidroInicial;
+  if(hidro!=null&&hAnt!=null&&hidro<hAnt){toast(`A leitura do hidrômetro (${fmtM3(hidro)}) ficou menor que a anterior (${fmtM3(hAnt)}). Confira os números.`);return}
+  S.dias.push({obs,mort:m,elim:el,leitura,carga,peso,hidro});recalcula(S);
+  e.target.reset();$("fCarga").value=0;$("fElim").value=0;renderAll();
+  toast(`Dia ${S.idade} salvo. Ração: ${nf(consumo)} kg${S.agua[S.idade-1]!=null?`, água: ${nf(S.agua[S.idade-1])} L`:""}`);
+});
+$("histDias").addEventListener("click",e=>{
+  const eb=e.target.closest("[data-editdia]"),db=e.target.closest("[data-deldia]");
+  if(eb){
+    if(bloqueado){toast(msgBloq());return}
+    const i=+eb.dataset.editdia,d=S.dias[i];editDia=i;
+    $("fMort").value=d.mort;$("fObs").value=d.obs||"";$("fElim").value=d.elim||0;$("fSilo").value=d.leitura!=null?d.leitura:"";$("fCarga").value=d.carga||0;$("fPeso").value=d.peso||"";$("fAgua").value=d.hidro!=null?fmtM3(d.hidro):"";
+    renderLancar();$("lancarTitle").scrollIntoView({behavior:"smooth",block:"start"});$("fMort").focus({preventScroll:true});return;
+  }
+  if(db){
+    if(bloqueado){toast(msgBloq());return}
+    if(!db.classList.contains("confirm")){db.classList.add("confirm");db.textContent="Confirmar";setTimeout(()=>{if(db.isConnected){db.classList.remove("confirm");db.textContent="Excluir"}},4000);return}
+    const i=+db.dataset.deldia;S.dias.splice(i,1);if(editDia===i)editDia=null;recalcula(S);$("form").reset();$("fCarga").value=0;$("fElim").value=0;renderAll();toast(`Dia ${i+1} excluído`);
+  }
+});
+$("editCancel").addEventListener("click",()=>{editDia=null;$("form").reset();$("fCarga").value=0;$("fElim").value=0;renderLancar()});
+$("verTodos").addEventListener("click",()=>{verTodosDias=true;renderLancar()});
+$("gCat").innerHTML=CATS.map(c=>`<option>${c}</option>`).join("");
+$("gData").value="2026-09-24";
+$("finForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  if(bloqueado){toast(msgBloq());return}
+  const val=parseFloat($("gVal").value);
+  if(!(val>0)){toast("Informe um valor maior que zero.");return}
+  S.gastos.push({id:++gastoId,cat:$("gCat").value,desc:$("gDesc").value.trim(),val,data:$("gData").value});
+  $("gDesc").value="";$("gVal").value="";renderFinanceiro();
+  toast(`Gasto de ${brl(val)} salvo`);
+});
+$("finList").addEventListener("click",e=>{
+  const b=e.target.closest(".del");if(!b)return;
+  if(bloqueado){toast(msgBloq());return}
+  S.gastos=S.gastos.filter(g=>g.id!==+b.dataset.id);renderFinanceiro();toast("Gasto excluído");
+});
+$("printBtn").addEventListener("click",()=>{try{window.print()}catch(_){toast("Use o menu do navegador para imprimir.")}});
+let bloqueado=false;
+const msgBloq=()=>`Acesso vencido. Para renovar, fale com ${CLIENTE.contato}.`;
+let tt;function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>el.classList.remove("show"),3200)}
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function aplicaLicenca(lic){
+  $("licenca").innerHTML="";document.body.classList.remove("bloqueado");bloqueado=false;
+  if(souAdmin){$("acessoInfo").textContent="Você está como administrador.";return}
+  if(!lic||!lic.vencimento){
+    bloqueado=true;document.body.classList.add("bloqueado");
+    $("licenca").innerHTML=`<div class="lic alert">Sua conta ainda não tem um acesso ativo. Fale com ${esc(CONTATO)}.</div>`;
+    $("acessoInfo").textContent="Conta sem acesso ativo.";return;
+  }
+  CLIENTE.nome=lic.nome||"";
+  const venc=lic.vencimento.toDate?lic.vencimento.toDate():new Date(lic.vencimento);
+  const v0=new Date(venc.getFullYear(),venc.getMonth(),venc.getDate()),h=new Date();h.setHours(0,0,0,0);
+  const rest=Math.round((v0-h)/86400000),vs=v0.toLocaleDateString("pt-BR");
+  bloqueado=venc<=new Date();
+  if(bloqueado){$("licenca").innerHTML=`<div class="lic alert">O acesso venceu em ${vs}. Você ainda pode consultar os dados, mas novos lançamentos estão bloqueados. Para renovar, fale com ${esc(CONTATO)}.</div>`;document.body.classList.add("bloqueado")}
+  else if(rest<=5)$("licenca").innerHTML=`<div class="lic warn">Seu acesso vence ${rest===0?"hoje":rest===1?"amanhã":`em ${rest} dias`} (${vs}). Para renovar, fale com ${esc(CONTATO)}.</div>`;
+  $("acessoInfo").textContent=`Acesso${CLIENTE.nome?` de ${CLIENTE.nome}`:""} válido até ${vs}.`;
+}
+const T0=performance.now();let splashOk=false,telaPend=null;
+function tela(q){
+  if(!splashOk&&q!=="loading"){
+    const w=1600-(performance.now()-T0);
+    if(w>0){const primeiro=telaPend===null;telaPend=q;if(primeiro)setTimeout(()=>{splashOk=true;const pq=telaPend;telaPend=null;tela(pq)},w);return}
+    splashOk=true;
+  }$("loadingScreen").hidden=q!=="loading";$("loginScreen").hidden=q!=="login";$("app").hidden=q!=="app"}
+async function carregar(uid){
+  tela("loading");$("loadingMsg").textContent="Carregando seus dados…";
+  loaded=false;alvoUid=uid;
+  let saved=null;
+  try{const sn=await getDoc(doc(FB.db,"agz_clientes",uid));if(sn.exists())saved=JSON.parse(sn.data().json)}
+  catch(_){
+    $("loadingMsg").innerHTML='Não foi possível carregar os dados. Confira a internet.<br><button class="btn" type="button" id="retryBtn" style="margin-top:14px">Tentar de novo</button>';
+    $("retryBtn").addEventListener("click",()=>carregar(uid));return;
+  }
+  if(saved){try{restore(saved)}catch(_){saved=null}}
+  if(!saved){GALPOES.length=0;G.granja="";GALPOES.push(novoGalpao());useGalpao(0)}
+  editDia=null;lastJs=snapshot();loaded=true;renderAll();tela("app");
+  if(saved)showTab("hoje");else{fillCfg(0);showTab("config");setTimeout(()=>toast("Comece preenchendo os dados da granja e do galpão."),300)}
+}
+async function carregarLicencas(){
+  const snap=await getDocs(collection(FB.db,"agz_licencas"));
+  const ls=[];snap.forEach(d=>ls.push({uid:d.id,...d.data()}));
+  ls.sort((a,b)=>(a.nome||"").localeCompare(b.nome||""));
+  const eu=FB.auth.currentUser.uid;
+  $("clienteSel").innerHTML=[`<option value="${eu}">Meus galpões</option>`,...ls.filter(l=>l.uid!==eu).map(l=>`<option value="${esc(l.uid)}">${esc(l.nome||l.uid)}</option>`)].join("");
+  $("clienteSel").value=alvoUid||eu;
+  $("licList").innerHTML=ls.length?ls.map(l=>{const v=l.vencimento?.toDate?l.vencimento.toDate():null;return `<div class="licrow"><div><b>${esc(l.nome||"Sem nome")}</b><span>${v&&v>new Date()?"ativo":"vencido"}</span></div><input type="date" aria-label="Vencimento de ${esc(l.nome||"")}" value="${v?isoD(v):""}" data-lic="${esc(l.uid)}"><button class="sbtn" type="button" data-licsave="${esc(l.uid)}">Salvar</button></div>`}).join(""):'<p class="sub">Nenhum acesso criado ainda.</p>';
+}
+async function gravaLicenca(uid,dados){
+  const [y,m,d]=dados.venc.split("-").map(Number);
+  const body={vencimento:Timestamp.fromDate(new Date(y,m-1,d,23,59,59))};if(dados.nome)body.nome=dados.nome;
+  await setDoc(doc(FB.db,"agz_licencas",uid),body,{merge:true});
+}
+async function iniciar(user){
+  souAdmin=!!user.email&&user.email.toLowerCase()===ADMIN_EMAIL.toLowerCase();
+  let lic=null;
+  try{const ls=await getDoc(doc(FB.db,"agz_licencas",user.uid));if(ls.exists())lic=ls.data()}catch(_){}
+  aplicaLicenca(lic);
+  $("adminBar").hidden=!souAdmin;$("adminPanel").hidden=!souAdmin;
+  alvoUid=user.uid;
+  if(souAdmin){try{await carregarLicencas()}catch(_){toast("Não foi possível carregar a lista de clientes.")}}
+  await carregar(user.uid);
+}
+$("clienteSel").addEventListener("change",async e=>{await flush();await carregar(e.target.value);$("clienteSel").value=alvoUid});
+$("licList").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-licsave]");if(!b)return;
+  const uid=b.dataset.licsave,inp=$("licList").querySelector(`input[data-lic="${CSS.escape(uid)}"]`);
+  if(!inp.value){toast("Escolha a data de vencimento.");return}
+  try{await gravaLicenca(uid,{venc:inp.value});toast("Acesso atualizado");await carregarLicencas()}catch(_){toast("Não foi possível salvar o acesso.")}
+});
+$("licForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const uid=$("nUid").value.trim();
+  try{await gravaLicenca(uid,{nome:$("nNome").value.trim(),venc:$("nVenc").value});e.target.reset();toast("Acesso criado");await carregarLicencas()}catch(_){toast("Não foi possível criar o acesso. Confira o UID.")}
+});
+$("logoutBtn").addEventListener("click",async()=>{await flush();loaded=false;alvoUid=null;await signOut(FB.auth)});
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();$("loginMsg").textContent="";$("loginBtn").disabled=true;
+  try{await signInWithEmailAndPassword(FB.auth,$("lEmail").value.trim(),$("lSenha").value)}
+  catch(err){
+    const c=err&&err.code||"";
+    $("loginMsg").textContent=c.includes("too-many-requests")?"Muitas tentativas. Aguarde alguns minutos e tente de novo.":c.includes("network")?"Sem internet. Confira a conexão e tente de novo.":"E-mail ou senha incorretos.";
+  }finally{$("loginBtn").disabled=false}
+});
+$("esqueciBtn").addEventListener("click",async()=>{
+  const em=$("lEmail").value.trim();
+  if(!em){$("loginMsg").textContent="Digite o seu e-mail acima e toque de novo em Esqueci a senha.";return}
+  try{await sendPasswordResetEmail(FB.auth,em);$("loginMsg").textContent="Se esse e-mail tiver conta, enviamos um link para criar uma nova senha."}
+  catch(_){$("loginMsg").textContent="Não foi possível enviar agora. Confira o e-mail e a internet."}
+});
+$("importInput").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;
+  if(bloqueado){toast(msgBloq());e.target.value="";return}
+  const r=new FileReader();
+  r.onload=()=>{try{restore(JSON.parse(r.result));renderAll();fillCfg(cur);toast("Cópia restaurada")}catch(_){toast("Esse arquivo não é uma cópia do app.")}e.target.value=""};
+  r.readAsText(f);
+});
+$("exportBtn").hidden=false;
+$("exportBtn").addEventListener("click",()=>{
+  const nome=(G.granja||"granja").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([snapshot()],{type:"application/json"}));
+  a.download=`agrozeca-${nome}-${isoD(new Date())}.json`;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),3000);toast("Cópia salva");
+});
+try{
+  if(FIREBASE_CONFIG.apiKey==="COLE_AQUI")throw new Error("config");
+  const fbApp=initializeApp(FIREBASE_CONFIG);
+  FB={auth:getAuth(fbApp),db:getFirestore(fbApp)};
+  onAuthStateChanged(FB.auth,u=>{if(u){iniciar(u)}else{tela("login")}});
+}catch(_){
+  $("loadingMsg").textContent="O app ainda não foi configurado. Preencha os dados do Firebase no início do arquivo.";
+}
+</script>
+</body>
+</html>
