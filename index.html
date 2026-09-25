@@ -179,7 +179,13 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
 @media (max-width:520px){.farm{display:none}}
 @media (max-width:480px){.grid{grid-template-columns:1fr 1fr}.silo{grid-template-columns:120px minmax(0,1fr);gap:12px}.silo-figs{grid-template-columns:1fr;gap:10px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-@media print{header,nav,.demo-note,#tab-hoje,#tab-lancar,#tab-financeiro,#tab-config,.no-print{display:none!important}#tab-relatorio{display:block!important}body{background:#fff;color:#000}.wrap{max-width:none}}
+@media print{header,nav,.demo-note,#tab-hoje,#tab-lancar,#tab-financeiro,#tab-config,.no-print{display:none!important}#tab-relatorio{display:block!important}body{background:#fff;color:#000}.wrap{max-width:none}
+  body.print-tk #tab-relatorio>*:not(#ticketsSec){display:none!important}
+  body.print-tk #ticketsSec .no-print,body.print-tk #licenca,body.print-tk #adminBar{display:none!important}
+  body.print-tk #tkCab{display:block!important}
+  .toast{display:none!important}
+  .tk th,.tk td{font-size:11pt}.tbl{overflow:visible}}
+#tkCab{display:none;margin-bottom:12px}
 .splash-img{width:min(100vw,56.25vh)!important;height:auto;max-height:none!important;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 7%,#000 93%,transparent 100%)!important;mask-image:linear-gradient(180deg,transparent 0,#000 7%,#000 93%,transparent 100%)!important}
 .splash{background:linear-gradient(180deg,#0c57bd 0 50%,#5f8611 50% 100%)!important}
 .splash-msg{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));color:#fff!important;text-shadow:0 1px 4px rgba(0,0,0,.7);font-weight:600}
@@ -381,9 +387,13 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
     <p id="repConc"></p>
     <h3>Lotes anteriores deste galpão</h3>
     <div id="histTec"></div>
-    <h2>Tickets de ração da granja</h2>
-    <p class="sub" style="margin-top:-4px">Todas as cargas recebidas nos lotes atuais de todos os galpões.</p>
-    <div id="ticketsRel"></div>
+    <div id="ticketsSec">
+      <div id="tkCab"><h2 style="margin:0" id="tkCabTit"></h2><p class="sub" style="margin:2px 0 0" id="tkCabSub"></p></div>
+      <h2>Tickets de ração da granja</h2>
+      <p class="sub" style="margin-top:-4px">Todas as cargas recebidas nos lotes atuais de todos os galpões.</p>
+      <div class="cfg-actions no-print" style="margin-bottom:14px"><button class="btn ghost" type="button" id="tkPrint">Imprimir ou salvar PDF só dos tickets</button><button class="btn ghost" type="button" id="tkCsv">Baixar planilha</button></div>
+      <div id="ticketsRel"></div>
+    </div>
     <p class="foot">AgroZeca, acompanhamento de lotes de frango de corte. Projeções baseadas no ritmo real do lote e na curva padrão da linhagem; servem de apoio e não substituem a avaliação técnica no galpão.</p>
   </section>
 </div>
@@ -933,6 +943,7 @@ function renderTickets(){
   });
   if(!linhas.length){$("ticketsRel").innerHTML='<p class="sub">Nenhuma carga de ração lançada ainda.</p>';return}
   linhas.sort((a,b)=>a.data-b.data||a.g.localeCompare(b.g));
+  window.__tk={linhas,res,tot:{tN,tR,tC,tE}};
   $("ticketsRel").innerHTML=`<h3>Resumo por galpão</h3><div class="tbl"><table class="tk"><thead><tr><th>Galpão</th><th>Cargas</th><th>Ração recebida</th><th>Ração consumida</th><th>Estoque estimado</th></tr></thead><tbody>
     ${res.map(r=>`<tr><td>${esc(r.g)}</td><td>${r.n}</td><td>${nf(r.rec)} kg</td><td>${nf(r.cons)} kg</td><td>${nf(r.est)} kg</td></tr>`).join("")}
     <tr style="font-weight:700"><td>Fazenda</td><td>${tN}</td><td>${nf(tR)} kg</td><td>${nf(tC)} kg</td><td>${nf(tE)} kg</td></tr></tbody></table></div>
@@ -940,6 +951,22 @@ function renderTickets(){
     ${linhas.map(l=>`<tr><td>${esc(l.tk)}${l.obs?` <small style="color:var(--muted)">(${l.obs})</small>`:""}</td><td>${l.data.toLocaleDateString("pt-BR")}</td><td>${esc(l.g)}</td><td>${l.dia}</td><td>${nf(l.kg)}</td></tr>`).join("")}
     </tbody></table></div><p class="sub" style="font-size:.85rem">Ração consumida inclui os dias estimados depois da última leitura do silo.</p>`;
 }
+$("tkPrint").addEventListener("click",()=>{
+  $("tkCabTit").textContent=`${G.granja||"Granja"}: tickets de ração`;
+  $("tkCabSub").textContent=`Emitido em ${new Date().toLocaleDateString("pt-BR")} às ${new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}. Lotes atuais de todos os galpões.`;
+  document.body.classList.add("print-tk");
+  const fim=()=>{document.body.classList.remove("print-tk");window.removeEventListener("afterprint",fim)};
+  window.addEventListener("afterprint",fim);setTimeout(()=>{try{window.print()}catch(_){toast("Use o menu do navegador para imprimir.")}setTimeout(fim,60000)},50);
+});
+$("tkCsv").addEventListener("click",()=>{
+  const t=window.__tk;if(!t||!t.linhas.length){toast("Nenhuma carga lançada ainda.");return}
+  const q=v=>`"${String(v).replace(/"/g,'""')}"`,n=v=>String(Math.round(v)).replace(".",",");
+  const L1=[["Ticket","Data","Galpão","Dia do lote","Kg"].join(";"),...t.linhas.map(l=>[q(l.tk+(l.obs?` (${l.obs})`:"")),l.data.toLocaleDateString("pt-BR"),q(l.g),l.dia,n(l.kg)].join(";"))];
+  const L2=["","Resumo por galpão",["Galpão","Cargas","Ração recebida (kg)","Ração consumida (kg)","Estoque estimado (kg)"].join(";"),...t.res.map(r=>[q(r.g),r.n,n(r.rec),n(r.cons),n(r.est)].join(";")),["Fazenda",t.tot.tN,n(t.tot.tR),n(t.tot.tC),n(t.tot.tE)].join(";")];
+  const nome=(G.granja||"granja").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+L1.concat(L2).join("\r\n")],{type:"text/csv;charset=utf-8"}));
+  a.download=`tickets-${nome}-${isoD(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("Planilha gerada");
+});
 function renderGalpaoSel(){
   $("galpaoSel").innerHTML=GALPOES.map((g,i)=>`<option value="${i}"${i===cur?" selected":""}>${g.L.galpao}</option>`).join("");
 }
