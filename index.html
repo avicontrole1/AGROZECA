@@ -134,6 +134,7 @@ input,select{font:500 1.1rem var(--sans);padding:10px 12px;border:1px solid var(
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 .tbl{overflow-x:auto;margin-bottom:18px}
+#cnDia{scroll-margin-top:calc(70px + env(safe-area-inset-top,0px))}
 .cn details{margin:6px 0 14px}.cn summary{cursor:pointer;font-weight:600;min-height:40px;display:flex;align-items:center}
 .cn .est{color:var(--muted);font-size:.8em}
 .ajuste{margin:-10px 0 22px;display:grid;gap:12px}
@@ -1109,6 +1110,7 @@ function tabSemanas({sem}){
   const pc=(r,e)=>{if(!e)return "–";const v=(r/e-1)*100;return `${v>0?"+":""}${nf(v,1)}%`};
   return `<div class="tbl"><table class="tk"><thead><tr><th>Semana</th><th>Dias</th><th>Real (kg)</th><th>Esperado (kg)</th><th>Diferença</th><th>Real g/ave/dia</th><th>Esperado g/ave/dia</th></tr></thead><tbody>${sem.map(x=>`<tr><td>${x.w}ª${x.todoReal?"":` <span class="est">${x.algumReal?"(parte estimada)":"(estimada)"}</span>`}</td><td>${x.de} a ${x.ate}</td><td>${nf(x.real)}</td><td>${nf(x.esp)}</td><td class="${Math.abs(x.real/x.esp-1)*100>8?(x.real<x.esp?"neg":"pos"):""}">${pc(x.real,x.esp)}</td><td>${nf(x.gR,1)}</td><td>${nf(x.gE,1)}</td></tr>`).join("")}</tbody></table></div>`;
 }
+let cnDiaAberto=false;
 function renderConsumoNum(){
   const box=$("consumoNum"),rb=$("repConsumo");
   if(!S.idade){box.innerHTML="";rb.innerHTML='<p class="sub">Sem lançamentos ainda.</p>';return}
@@ -1124,7 +1126,8 @@ function renderConsumoNum(){
       ${kpi("Por ave por dia",nf(g7R,1)+" g",`<small>esperado ${nf(g7E,1)} g (últimos ${u7.length} dias reais)</small>`)}
     </div>`:`<p class="sub">Ainda não há ajuste do estoque do silo, então todos os valores abaixo são estimados. Faça um ajuste para ver o consumo real.</p>`;
   const diaria=`<div class="tbl"><table class="tk"><thead><tr><th>Dia</th><th>Data</th><th>Aves vivas</th><th>Real (kg)</th><th>Esperado (kg)</th><th>Diferença</th><th>Real g/ave</th><th>Esperado g/ave</th></tr></thead><tbody>${[...D.dias].reverse().map(x=>`<tr><td>${x.d}</td><td>${dateAt(x.d)}</td><td>${nf(x.viv)}</td><td>${nf(x.real)}${x.ok?"":' <span class="est">est.</span>'}</td><td>${nf(x.esp)}</td><td>${x.esp?`${x.real>x.esp?"+":""}${nf((x.real/x.esp-1)*100,1)}%`:"–"}</td><td>${nf(x.gR,1)}</td><td>${nf(x.gE)}</td></tr>`).join("")}</tbody></table></div>`;
-  box.innerHTML=`<div class="cn"><h3 style="margin:4px 0 6px">Consumo em números</h3>${cab}<details open><summary>Por semana</summary>${tabSemanas(D)}</details><details><summary>Dia a dia</summary>${diaria}<p class="sub" style="font-size:.82rem">"est." = dia estimado, depois do último ajuste do estoque. O esperado é o consumo por ave da linhagem multiplicado pelas aves vivas de cada dia.</p></details></div>`;
+  box.innerHTML=`<div class="cn"><h3 style="margin:4px 0 6px">Consumo em números</h3>${cab}<details open><summary>Por semana</summary>${tabSemanas(D)}</details><button class="btn" type="button" id="cnDiaBtn" style="width:100%;margin:4px 0 12px">${cnDiaAberto?"Esconder consumo dia a dia":"Ver consumo dia a dia"}</button><div id="cnDia"${cnDiaAberto?"":" hidden"}>${diaria}<p class="sub" style="font-size:.82rem">"est." = dia estimado, depois do último ajuste do estoque. O esperado é o consumo por ave da linhagem multiplicado pelas aves vivas de cada dia.</p></div></div>`;
+  $("cnDiaBtn").onclick=()=>{cnDiaAberto=!cnDiaAberto;$("cnDia").hidden=!cnDiaAberto;$("cnDiaBtn").textContent=cnDiaAberto?"Esconder consumo dia a dia":"Ver consumo dia a dia";if(cnDiaAberto)$("cnDia").scrollIntoView({behavior:"smooth",block:"start"})};
   rb.innerHTML=(reais.length?`<p class="sub" style="margin:0 0 6px">Consumo real até o último ajuste do estoque: ${nf(rR)} kg; esperado pela linhagem: ${nf(rE)} kg (${dif>0?"+":""}${nf(dif,1)}%).</p>`:"")+tabSemanas(D);
 }
 function renderGalpaoSel(){
