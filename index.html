@@ -378,16 +378,16 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
       <label class="btn ghost file-btn">Restaurar uma cópia<input type="file" id="importInput" accept=".json,application/json"></label>
     </div>
     <p class="sub" id="acessoInfo" style="margin-top:18px"></p>
-    <div id="adminPanel" hidden style="display:none!important">
-      <h2>Acessos dos clientes</h2>
-      <p class="sub">Só você vê esta parte. Para renovar, mude a data e toque em Salvar.</p>
+    <div id="adminPanel" hidden>
+      <h2>Usuários do app</h2>
+      <p class="sub">Só o administrador vê esta parte. Todos os usuários ativos veem e lançam nos mesmos galpões. Para bloquear alguém, coloque uma data que já passou e toque em Salvar.</p>
       <div class="lics" id="licList"></div>
-      <h3>Novo acesso</h3>
+      <h3>Novo usuário</h3>
       <form id="licForm">
-        <label>Nome do cliente<input id="nNome" type="text" required></label>
+        <label>Nome do usuário<input id="nNome" type="text" required></label>
         <label>UID do usuário<small>Copie do Firebase, em Authentication, depois de criar o e-mail e a senha dele</small><input id="nUid" type="text" required autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-        <label>Acesso válido até<input id="nVenc" type="date" required></label>
-        <button class="btn" type="submit">Criar acesso</button>
+        <label>Acesso válido até<small>Para acesso sem prazo, deixe 31/12/2099</small><input id="nVenc" type="date" required value="2099-12-31"></label>
+        <button class="btn" type="submit">Criar usuário</button>
       </form>
     </div>
     <button class="btn ghost" type="button" id="logoutBtn" style="margin-top:22px">Sair da conta</button>
@@ -442,7 +442,7 @@ const CONTATO="o administrador";   // aparece nos avisos de vencimento
 /* ======================================================== */
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,doc,getDoc,getDocs,setDoc,collection,serverTimestamp,Timestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,doc,getDoc,getDocs,setDoc,collection,serverTimestamp,Timestamp,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const CLIENTE={nome:"",contato:CONTATO};
 let L={galpao:"Galpão 2",linhagem:"Ross 308",alojadas:30000,alojamento:new Date(2026,7,27)};
 const PADROES={
@@ -496,7 +496,7 @@ function save(){
 function flush(){
   clearTimeout(saveTimer);if(!pend)return saveChain;
   const p=pend;pend=null;
-  saveChain=saveChain.then(()=>setDoc(doc(FB.db,"agz_clientes",p.uid),{json:p.js,salvoEm:serverTimestamp()})).catch(()=>toast("Não foi possível salvar. Confira a internet e tente de novo."));
+  saveChain=saveChain.then(()=>setDoc(doc(FB.db,"agz_equipe","principal"),{json:p.js,salvoEm:serverTimestamp(),por:quem()})).catch(()=>toast("Não foi possível salvar. Confira a internet e tente de novo."));
   return saveChain;
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush()});
@@ -523,13 +523,16 @@ function parseDec(t){
 const fmtM3=v=>v==null?"":v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 function recalculaAgua(S,teste){
   const n=S.dias.length,agua=new Array(n).fill(null);
-  let lastH=S.hidroInicial!=null?S.hidroInicial:null,lastIdx=-1;
+  const gg=(typeof GALPOES!=="undefined")?GALPOES.find(x=>x.S===S):null,Lx=gg?gg.L:L;
+  const w=[];let perd=0;
+  for(let i=0;i<n;i++){const d=S.dias[i],pd=(d.mort||0)+(d.elim||0);const viv=Math.max(1,(Lx.alojadas||1)-perd-pd/2);perd+=pd;w.push(Math.max(0.001,consumoAveLin(Lx.linhagem,i+1)*viv))}
+  let lastH=S.hidroInicial!=null?S.hidroInicial:null,lastIdx=-1,prim=null;
   for(let i=0;i<n;i++){
     const h=S.dias[i].hidro;if(h==null)continue;
-    if(lastH!=null){const diff=h-lastH;if(diff<0)return {erro:i+1,tipo:"agua"};const por=diff*1000/(i-lastIdx);for(let k=lastIdx+1;k<=i;k++)agua[k]=por}
+    if(lastH!=null){const diff=h-lastH;if(diff<0)return {erro:i+1,tipo:"agua"};let ws=0;for(let k=lastIdx+1;k<=i;k++)ws+=w[k];for(let k=lastIdx+1;k<=i;k++)agua[k]=diff*1000*w[k]/ws;if(prim==null)prim=lastIdx}
     lastH=h;lastIdx=i;
   }
-  if(!teste){S.agua=agua;S.hidroUlt=lastH}
+  if(!teste){S.agua=agua;S.hidroUlt=lastH;S.aguaDe=prim;S.aguaAte=lastIdx}
   return {ok:true};
 }
 const consumoAveLin=(lin,d)=>{const t=CONSUMO_AVE[lin]||CONSUMO_AVE["Ross 308"];return t[Math.min(Math.max(d,1),t.length)-1]};
@@ -578,6 +581,8 @@ function restore(o){
   GALPOES.forEach(g=>migraS(g.S));
   useGalpao(Math.min(o.cur||0,GALPOES.length-1));
 }
+const MOSTRA_POR=true;
+const quem=()=>{try{return (FB&&FB.auth&&FB.auth.currentUser&&FB.auth.currentUser.email)||""}catch(_){return ""}};
 const FASES_PADRAO=[{nome:"Pré-inicial",kgAve:0.2},{nome:"Inicial",kgAve:1},{nome:"Crescimento",kgAve:2.2},{nome:"Final",kgAve:1.5}];
 const fasesDe=Lx=>(Lx&&Array.isArray(Lx.fases)&&Lx.fases.length?Lx.fases:FASES_PADRAO);
 function calcFases(g){
@@ -776,6 +781,7 @@ function drawAgua(){
     const df=es?(rs/es-1)*100:0;
     const txt=Math.abs(df)<5?"dentro do esperado":df<0?`${nf(Math.abs(df),1)}% abaixo do esperado`:`${nf(df,1)}% acima do esperado`;
     $("aguaResumo").textContent=`Últimos ${ult.length} dias com leitura: ${nf(rs)} litros, ${txt} (${nf(es)} litros). Relação água : ração real de ${racao?nf(rs/racao,2):"–"} litros por kg (esperado ${nf(rel,1)}).`;
+    {const tot=(S.agua||[]).reduce((a,v)=>a+(v||0),0),de=S.aguaDe,ate=S.aguaAte;if(tot>0){const ini=de<0?"o alojamento":`o dia ${de+1}`;$("aguaResumo").textContent+=` No lote: ${nf(tot)} litros entre ${ini} e o dia ${ate+1} (${nf(tot/1000,2)} m³).`}}
   }else $("aguaResumo").textContent=S.hidroUlt!=null||S.hidroInicial!=null?"O consumo de água aparece a partir da próxima leitura do hidrômetro.":"Lance a leitura do hidrômetro na aba Lançar dia para acompanhar o consumo de água. A linha tracejada mostra o esperado.";
   const W=600,H=270,pl=58,pr=14,pt=26,pb=30,maxD=esp.length;
   const vmax=Math.max(...esp.map(p=>p.v),...real.map(p=>p.v),100);
@@ -920,7 +926,7 @@ function renderLancar(){
   const n=S.dias.length,idx=[...Array(n).keys()].reverse(),mostrar=verTodosDias?idx:idx.slice(0,7);
   $("histDias").innerHTML=n?mostrar.map(i=>{const d=S.dias[i],c=S.consumos[i];
     const partes=[`${d.mort} ${d.mort===1?"morta":"mortas"}`,d.elim?`${d.elim} ${d.elim===1?"eliminada":"eliminadas"}`:null,(S.ajustes||[]).some(a=>a.dia===i+1)?`estoque ajustado ${nf((S.estDia||[])[i]||0)} kg`:`silo estimado ${nf(Math.max(0,(S.estDia||[])[i]||0))} kg`,d.carga?`carga ${nf(d.carga)} kg${d.fase?` de ${esc(d.fase)}`:""}${d.ticket?` (ticket ${esc(d.ticket)})`:" (sem ticket)"}`:null,`consumo ${nf(c||0)} kg${S.consumoReal&&S.consumoReal[i]?"":" (estimado)"}`,d.hidro!=null?`hidrômetro ${fmtM3(d.hidro)} m³`:null,S.agua&&S.agua[i]!=null?`água ${nf(S.agua[i])} L`:null,d.peso?`peso ${nf(d.peso)} g`:null].filter(Boolean).join(", ");
-    return `<div class="dia${i===editDia?" on":""}"><div><b>Dia ${i+1}, ${dateAt(i+1)}</b><span>${partes}</span>${d.obs?`<span style="color:var(--ink);font-style:italic">${esc(d.obs)}</span>`:""}</div><div class="galp-btns"><button type="button" class="sbtn" data-editdia="${i}">Editar</button>${i===n-1?`<button type="button" class="sbtn danger" data-deldia="${i}" aria-label="Excluir o dia ${i+1}">Excluir</button>`:""}</div></div>`}).join(""):'<p class="sub">Os dias lançados aparecem aqui.</p>';
+    return `<div class="dia${i===editDia?" on":""}"><div><b>Dia ${i+1}, ${dateAt(i+1)}</b><span>${partes}</span>${d.obs?`<span style="color:var(--ink);font-style:italic">${esc(d.obs)}</span>`:""}${MOSTRA_POR&&d.por?`<span style="font-size:.8rem">lançado por ${esc(d.por)}</span>`:""}</div><div class="galp-btns"><button type="button" class="sbtn" data-editdia="${i}">Editar</button>${i===n-1?`<button type="button" class="sbtn danger" data-deldia="${i}" aria-label="Excluir o dia ${i+1}">Excluir</button>`:""}</div></div>`}).join(""):'<p class="sub">Os dias lançados aparecem aqui.</p>';
   $("verTodos").hidden=verTodosDias||n<=7;
 }
 const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
@@ -1112,7 +1118,7 @@ $("tkCsv").addEventListener("click",()=>{
 
 function renderAjustes(){
   const a=(S.ajustes||[]).slice().sort((x,y)=>y.dia-x.dia||(y.ts||0)-(x.ts||0));
-  $("ajLista").innerHTML=a.length?`<div class="sub" style="margin:0 0 2px;font-weight:600">Ajustes deste lote</div>`+a.slice(0,8).map(x=>`<div class="ajrow"><div><b>${nf(x.kg)} kg</b><span>${dateAt(x.dia)}${x.ts?" às "+new Date(x.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):""}, dia ${x.dia} do lote${x.dia>S.idade?" (aguardando o lançamento do dia)":""}</span></div><button type="button" class="sbtn danger" data-ajdel="${x.dia}|${x.ts||0}">Excluir</button></div>`).join(""):"";
+  $("ajLista").innerHTML=a.length?`<div class="sub" style="margin:0 0 2px;font-weight:600">Ajustes deste lote</div>`+a.slice(0,8).map(x=>`<div class="ajrow"><div><b>${nf(x.kg)} kg</b><span>${dateAt(x.dia)}${x.ts?" às "+new Date(x.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):""}, dia ${x.dia} do lote${x.dia>S.idade?" (aguardando o lançamento do dia)":""}${MOSTRA_POR&&x.por?`, por ${esc(x.por)}`:""}</span></div><button type="button" class="sbtn danger" data-ajdel="${x.dia}|${x.ts||0}">Excluir</button></div>`).join(""):"";
 }
 $("ajAbrir").addEventListener("click",()=>{if(bloqueado){toast(msgBloq());return}$("ajForm").hidden=false;$("ajAbrir").hidden=true;$("ajData").value=isoD(new Date());$("ajData").max=isoD(new Date());$("ajData").min=isoD(new Date(L.alojamento.getTime()+864e5));$("ajKg").value="";$("ajKg").focus()});
 $("ajCancel").addEventListener("click",()=>{$("ajForm").hidden=true;$("ajAbrir").hidden=false});
@@ -1123,7 +1129,7 @@ $("ajForm").addEventListener("submit",e=>{
   if(dia<1){toast("A data precisa ser depois do dia do alojamento.");return}
   if(!Array.isArray(S.ajustes))S.ajustes=[];
   const antes=S.ajustes.slice(),hoje=isoD(new Date())===$("ajData").value;
-  S.ajustes=S.ajustes.filter(a=>a.dia!==dia);S.ajustes.push({dia,kg,ts:hoje?Date.now():dt.getTime()+18*36e5});
+  S.ajustes=S.ajustes.filter(a=>a.dia!==dia);S.ajustes.push({dia,kg,ts:hoje?Date.now():dt.getTime()+18*36e5,por:quem()});
   const t=recalcula(S,true);
   if(t.erro){S.ajustes=antes;toast("Esse estoque é maior do que o possível (último ajuste + cargas lançadas). Confira se falta lançar alguma carga.");return}
   recalcula(S);$("ajForm").hidden=true;$("ajAbrir").hidden=false;renderAll();
@@ -1316,7 +1322,7 @@ $("form").addEventListener("submit",e=>{
   }
   const hAnt=S.hidroUlt!=null?S.hidroUlt:S.hidroInicial;
   if(hidro!=null&&hAnt!=null&&hidro<hAnt){toast(`A leitura do hidrômetro (${fmtM3(hidro)}) ficou menor que a anterior (${fmtM3(hAnt)}). Confira os números.`);return}
-  S.dias.push({ticket:carga>0?tk:"",fase:carga>0?$("fFase").value:"",obs,mort:m,elim:el,carga,peso,hidro});
+  S.dias.push({por:quem(),ticket:carga>0?tk:"",fase:carga>0?$("fFase").value:"",obs,mort:m,elim:el,carga,peso,hidro});
   {const t=recalcula(S,true);if(t.erro){S.dias.pop();toast(t.tipo==="agua"?"A leitura do hidrômetro ficou menor que a anterior. Confira os números.":"A leitura do silo ficou maior do que o possível (estoque anterior + cargas). Confira se falta lançar alguma carga.");return}}
   recalcula(S);
   e.target.reset();$("fCarga").value=0;$("fElim").value=0;renderAll();
@@ -1390,16 +1396,30 @@ async function carregar(uid){
   tela("loading");$("loadingMsg").textContent="Carregando seus dados…";
   loaded=false;alvoUid=uid;
   let saved=null;
-  try{const sn=await getDoc(doc(FB.db,"agz_clientes",uid));if(sn.exists())saved=JSON.parse(sn.data().json)}
+  let migrou=false;try{const sn=await getDoc(doc(FB.db,"agz_equipe","principal"));if(sn.exists())saved=JSON.parse(sn.data().json);else if(souAdmin){const s2=await getDoc(doc(FB.db,"agz_clientes",FB.auth.currentUser.uid));if(s2.exists()){saved=JSON.parse(s2.data().json);migrou=true}}}
   catch(_){
     $("loadingMsg").innerHTML='Não foi possível carregar os dados. Confira a internet.<br><button class="btn" type="button" id="retryBtn" style="margin-top:14px">Tentar de novo</button>';
     $("retryBtn").addEventListener("click",()=>carregar(uid));return;
   }
   if(saved){try{restore(saved)}catch(_){saved=null}}
   if(!saved){GALPOES.length=0;G.granja="";GALPOES.push(novoGalpao());useGalpao(0)}
-  editDia=null;lastJs=snapshot();loaded=true;renderAll();tela("app");
+  editDia=null;lastJs=snapshot();loaded=true;renderAll();tela("app");if(migrou){lastJs="";save()}ouvir();
   if(saved)showTab("hoje");else{fillCfg(0);showTab("config");setTimeout(()=>toast("Comece preenchendo os dados da granja e do galpão."),300)}
 }
+let pararOuvir=null,remotoPend=null;
+function aplicaRemoto(js){
+  try{const aba=["hoje","lancar","relatorio","financeiro","config","lote"].find(t=>!$("tab-"+t).hidden)||"hoje",c=cur;
+    restore(JSON.parse(js));if(c<GALPOES.length)useGalpao(c);lastJs=snapshot();editDia=null;renderAll();showTab(aba);toast("Dados atualizados por outro usuário")}catch(_){}
+}
+function ouvir(){
+  if(pararOuvir)pararOuvir();
+  pararOuvir=onSnapshot(doc(FB.db,"agz_equipe","principal"),sn=>{
+    if(!sn.exists()||sn.metadata.hasPendingWrites)return;const js=sn.data().json;if(!js||js===lastJs||pend)return;
+    const ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)){remotoPend=js;return}
+    aplicaRemoto(js);
+  },()=>{});
+}
+document.addEventListener("focusout",()=>setTimeout(()=>{const ae=document.activeElement;if(remotoPend&&!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))&&!pend){const js=remotoPend;remotoPend=null;if(js!==lastJs)aplicaRemoto(js)}},400));
 async function carregarLicencas(){
   const snap=await getDocs(collection(FB.db,"agz_licencas"));
   const ls=[];snap.forEach(d=>ls.push({uid:d.id,...d.data()}));
@@ -1407,7 +1427,7 @@ async function carregarLicencas(){
   const eu=FB.auth.currentUser.uid;
   $("clienteSel").innerHTML=[`<option value="${eu}">Meus galpões</option>`,...ls.filter(l=>l.uid!==eu).map(l=>`<option value="${esc(l.uid)}">${esc(l.nome||l.uid)}</option>`)].join("");
   $("clienteSel").value=alvoUid||eu;
-  $("licList").innerHTML=ls.length?ls.map(l=>{const v=l.vencimento?.toDate?l.vencimento.toDate():null;return `<div class="licrow"><div><b>${esc(l.nome||"Sem nome")}</b><span>${v&&v>new Date()?"ativo":"vencido"}</span></div><input type="date" aria-label="Vencimento de ${esc(l.nome||"")}" value="${v?isoD(v):""}" data-lic="${esc(l.uid)}"><button class="sbtn" type="button" data-licsave="${esc(l.uid)}">Salvar</button></div>`}).join(""):'<p class="sub">Nenhum acesso criado ainda.</p>';
+  $("licList").innerHTML=ls.length?ls.map(l=>{const v=l.vencimento?.toDate?l.vencimento.toDate():null;return `<div class="licrow"><div><b>${esc(l.nome||"Sem nome")}</b><span>${v&&v>new Date()?"ativo":"bloqueado"}</span></div><input type="date" aria-label="Vencimento de ${esc(l.nome||"")}" value="${v?isoD(v):""}" data-lic="${esc(l.uid)}"><button class="sbtn" type="button" data-licsave="${esc(l.uid)}">Salvar</button></div>`}).join(""):'<p class="sub">Nenhum usuário criado ainda.</p>';
 }
 async function gravaLicenca(uid,dados){
   const [y,m,d]=dados.venc.split("-").map(Number);
@@ -1418,10 +1438,13 @@ async function iniciar(user){
   souAdmin=!!user.email&&user.email.toLowerCase()===ADMIN_EMAIL.toLowerCase();
   let lic=null;
   try{const ls=await getDoc(doc(FB.db,"agz_licencas",user.uid));if(ls.exists())lic=ls.data()}catch(_){}
-  souAdmin=true;bloqueado=false;$("licenca").innerHTML="";document.body.classList.remove("bloqueado");$("acessoInfo").textContent="Conectado como "+user.email+".";
-  $("adminBar").hidden=true;$("adminPanel").hidden=true;
+  bloqueado=false;$("licenca").innerHTML="";document.body.classList.remove("bloqueado");
+  if(!souAdmin){const v=lic&&lic.vencimento&&lic.vencimento.toDate?lic.vencimento.toDate():null;
+    if(!v||v<new Date()){tela("loading");$("loadingMsg").innerHTML='Seu usuário ainda não tem acesso a este app.<br>Fale com o administrador.<br><button class="btn" type="button" id="sairBloq" style="margin-top:14px">Sair</button>';$("sairBloq").onclick=()=>signOut(FB.auth);return}}
+  $("acessoInfo").textContent="Conectado como "+user.email+(souAdmin?" (administrador).":".");
+  $("adminBar").hidden=true;$("adminPanel").hidden=!souAdmin;
   alvoUid=user.uid;
-  
+  if(souAdmin){try{await carregarLicencas()}catch(_){toast("Não foi possível carregar a lista de clientes.")}}
   await carregar(user.uid);
 }
 $("clienteSel").addEventListener("change",async e=>{await flush();await carregar(e.target.value);$("clienteSel").value=alvoUid});
@@ -1434,7 +1457,7 @@ $("licList").addEventListener("click",async e=>{
 $("licForm").addEventListener("submit",async e=>{
   e.preventDefault();
   const uid=$("nUid").value.trim();
-  try{await gravaLicenca(uid,{nome:$("nNome").value.trim(),venc:$("nVenc").value});e.target.reset();toast("Acesso criado");await carregarLicencas()}catch(_){toast("Não foi possível criar o acesso. Confira o UID.")}
+  try{await gravaLicenca(uid,{nome:$("nNome").value.trim(),venc:$("nVenc").value});e.target.reset();$("nVenc").value="2099-12-31";toast("Usuário criado");await carregarLicencas()}catch(_){toast("Não foi possível criar o usuário. Confira o UID.")}
 });
 $("logoutBtn").addEventListener("click",async()=>{await flush();loaded=false;alvoUid=null;await signOut(FB.auth)});
 $("loginForm").addEventListener("submit",async e=>{
