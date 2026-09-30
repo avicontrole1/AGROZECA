@@ -562,17 +562,20 @@ function recalcula(S,teste){
   Object.assign(S,{mort,elim,consumos:cons.map(v=>Math.round(v)),consumoReal:real,estDia:estD,ritmo:r,ultLeitura:ult,racaoTotal:tot,estoque:est,pesos,racaoAt,idade:n});
   return {ok:true};
 }
-function estoqueAgora(){
-  const k=S.idade,pend=(S.ajustes||[]).filter(a=>a.dia>k&&a.ts).sort((a,b)=>b.ts-a.ts)[0];
-  if(pend){const h=Math.max(0,(Date.now()-pend.ts)/3600000),viv=vivas(k);let kg=pend.kg,rest=h/24,d=pend.dia;while(rest>0&&d<pend.dia+60){const f=Math.min(1,rest);kg-=consumoAveLin(L.linhagem,d)*viv/1000*(S.ritmo||1)*f;rest-=1;d++}return {kg,horas:h,pend}}
-  if(!k)return {kg:S.estoque||0,horas:0};
-  const fim=new Date(L.alojamento);fim.setDate(fim.getDate()+k+1);
+function estoqueAgoraDe(g){
+  const S2=g.S,L2=g.L,k=S2.idade||0;
+  const viv=Math.max(1,(L2.alojadas||1)-(S2.dias||[]).reduce((a,d)=>a+(d.mort||0)+(d.elim||0),0));
+  const pend=(S2.ajustes||[]).filter(a=>a.dia>k&&a.ts).sort((a,b)=>b.ts-a.ts)[0];
+  const desconta=(kg,d0,h)=>{let rest=h/24,d=d0;while(rest>0&&d<d0+60){const f=Math.min(1,rest);kg-=consumoAveLin(L2.linhagem,d)*viv/1000*(S2.ritmo||1)*f;rest-=1;d++}return kg};
+  if(pend){const h=Math.max(0,(Date.now()-pend.ts)/3600000);return {kg:desconta(pend.kg,pend.dia,h),horas:h,pend}}
+  if(!k)return {kg:S2.estoque||0,horas:0};
+  const fim=new Date(L2.alojamento);fim.setDate(fim.getDate()+k+1);
   const h=(Date.now()-fim.getTime())/3600000;
-  if(h<=0)return {kg:S.estoque,horas:0};
-  let kg=S.estoque,rest=h/24,d=k+1;const viv=vivas(k);
-  while(rest>0&&d<k+60){const f=Math.min(1,rest);kg-=consumoAveLin(L.linhagem,d)*viv/1000*(S.ritmo||1)*f;rest-=1;d++}
-  return {kg,horas:h};
+  if(h<=0)return {kg:S2.estoque,horas:0};
+  return {kg:desconta(S2.estoque,k+1,h),horas:h};
 }
+function estoqueAgora(){return estoqueAgoraDe(GALPOES[cur])}
+function idadeHoje(Lx){const h=new Date();h.setHours(0,0,0,0);const a=new Date(Lx.alojamento);a.setHours(0,0,0,0);return Math.round((h-a)/864e5)}
 function restore(o){
   if(!o||!Array.isArray(o.galpoes)||!o.galpoes.length)throw new Error("arquivo inválido");
   G.granja=o.G?.granja||"";gastoId=o.gastoId||100;
@@ -594,6 +597,8 @@ function calcFases(g){
   if(S2.estoqueInicial>0)entra(S2.estoqueInicial,F[0].nome);
   (S2.dias||[]).forEach((d,k)=>{if(+d.carga>0)entra(+d.carga,d.fase||null);let c=(S2.consumos||[])[k]||0;
     while(c>0&&fila.length){const q=fila[0],t=Math.min(q.kg,c);rows[q.i].cons+=t;q.kg-=t;c-=t;if(q.kg<=0.001)fila.shift()}});
+  let extra=Math.max(0,(S2.estoque||0)-Math.max(0,estoqueAgoraDe(g).kg));
+  while(extra>0&&fila.length){const q=fila[0],t=Math.min(q.kg,extra);rows[q.i].cons+=t;q.kg-=t;extra-=t;if(q.kg<=0.001)fila.shift()}
   fila.forEach(q=>rows[q.i].silo+=q.kg);
   const atual=fila.length?rows[fila[0].i].nome:null;
   return {rows,atual,sugerida:rows[pick()].nome};
@@ -714,7 +719,7 @@ function renderHoje(){
   const d=ultimaPesagem(),p=S.pesos[d],pd=padraoAt(d),diff=(p/pd-1)*100;
   const txt=Math.abs(diff)<1.5?"no ritmo do padrão":(diff<0?`${nf(Math.abs(diff),1)}% abaixo do padrão`:`${nf(diff,1)}% acima do padrão`);
   $("verdict").innerHTML=d?`Lote <span class="gap">${txt}</span> ${L.linhagem} aos ${d} dias`:`${L.galpao} alojado, aguardando a primeira pesagem`;
-  $("verdict-sub").textContent=`Peso médio de ${nf(p)} g contra ${nf(pd)} g esperados. Hoje o lote está com ${S.idade} dias (${dateAt(S.idade)}).`;
+  $("verdict-sub").textContent=`Peso médio de ${nf(p)} g contra ${nf(pd)} g esperados. ${(()=>{const ih=idadeHoje(L),falta=ih-S.idade;return falta>0?`Hoje o lote está com ${ih} dias. Último lançamento: dia ${S.idade} (${dateAt(S.idade)}); faltam lançar ${falta} ${falta===1?"dia":"dias"}.`:`Hoje o lote está com ${S.idade} dias (${dateAt(S.idade)}).`})()}`;
   drawWeight();drawConsumo();renderConsumoNum();drawAgua();drawMort();drawSilo();renderAjustes();
   const c=conv(d);
   $("stats").innerHTML=[
@@ -877,7 +882,7 @@ function drawSilo(){
       ${fig(nf(pedir)+" kg","pedido sugerido para encher o silo")}
     </div>
     <div class="silo-cons">${c7.length?`<p>Consumo dos últimos 7 dias: média de ${nf(cm)} kg por dia, ${tend}</p>${bars}`:"<p>O consumo aparece aqui depois do primeiro lançamento do dia.</p>"}</div>
-    <p class="silo-foot">${leitTxt}${EA.kg<0?" Atenção: a conta ficou negativa; confira se alguma carga não foi lançada.":""} O pedido sugerido deixa ${nf(SILO.margem)} kg de folga.</p>`;
+    <p class="silo-foot">${(()=>{const f=idadeHoje(L)-S.idade;return f>0?`<b>Faltam lançar ${f} ${f===1?"dia":"dias"}.</b> O estoque desses dias é estimado; se chegou ração, lance as cargas para ele ficar certo. `:""})()}${leitTxt}${EA.kg<0?" Atenção: a conta ficou negativa; confira se alguma carga não foi lançada.":""} O pedido sugerido deixa ${nf(SILO.margem)} kg de folga.</p>`;
 }
 
 function renderRelatorio(){
@@ -998,7 +1003,7 @@ function renderTickets(){
     dias.forEach((d,i)=>{if(+d.carga>0){rec+=+d.carga;const fase=d.fase||"";const tk=(d.ticket||"").split(",").map(t=>t.trim()).filter(Boolean).join(", ");
       if(tk)tks.add(tk);else semN++;
       const dt=new Date(g.L.alojamento);dt.setDate(dt.getDate()+i+1);linhas.push({tk,fase,data:dt,g:g.L.galpao,dia:i+1,kg:+d.carga})}});
-    res.push({g:g.L.galpao,n:tks.size+semN,rec,cons:S2.racaoTotal||0,est:Math.max(0,S2.estoque||0)});tR+=rec;tC+=S2.racaoTotal||0;tE+=Math.max(0,S2.estoque||0);
+    const eH=Math.max(0,estoqueAgoraDe(g).kg),cH=(S2.racaoTotal||0)+Math.max(0,(S2.estoque||0)-eH);res.push({g:g.L.galpao,n:tks.size+semN,rec,cons:cH,est:eH});tR+=rec;tC+=cH;tE+=eH;
   });
   if(!linhas.length){$("ticketsRel").innerHTML='<p class="sub">Nenhuma carga de ração lançada ainda.</p>';window.__tk=null;return}
   const mapa=new Map(),grupos=[];
@@ -1011,13 +1016,13 @@ function renderTickets(){
   const dtxt=gr=>{const u=[...new Set(gr.datas.map(fd))];return u.join("<br>")};
   const ptxt=gr=>gr.partes.length>1?gr.partes.map(p=>`<span style="white-space:nowrap">${esc(p.g)}: ${nf(p.kg)}</span>`).join("<br>"):`<span style="white-space:nowrap">${esc(gr.partes[0].g)}</span>`;
   window.__tk={linhas,grupos,res,tot:{tN:nTk,tR,tC,tE}};
-  $("ticketsRel").innerHTML=renderFasesGranja()+`<h3>Resumo por galpão</h3><div class="tbl"><table class="tk"><thead><tr><th>Galpão</th><th>Tickets</th><th>Ração recebida</th><th>Ração consumida</th><th>Estoque estimado</th></tr></thead><tbody>
+  $("ticketsRel").innerHTML=renderFasesGranja()+`<h3>Resumo por galpão</h3><div class="tbl"><table class="tk"><thead><tr><th>Galpão</th><th>Tickets</th><th>Ração recebida</th><th>Consumida até hoje</th><th>Estoque hoje (estimado)</th></tr></thead><tbody>
     ${res.map(r=>`<tr><td>${esc(r.g)}</td><td>${r.n}</td><td>${nf(r.rec)} kg</td><td>${nf(r.cons)} kg</td><td>${nf(r.est)} kg</td></tr>`).join("")}
     <tr style="font-weight:700"><td>Fazenda</td><td>${nTk}</td><td>${nf(tR)} kg</td><td>${nf(tC)} kg</td><td>${nf(tE)} kg</td></tr></tbody></table></div>
     <p class="sub" style="font-size:.85rem;margin-top:-8px">Na linha Fazenda, um ticket dividido entre galpões conta uma vez só.</p>
     <h3>Todos os tickets</h3><div class="tbl"><table class="tkl"><thead><tr><th>Ticket</th><th>Kg</th><th>Data</th><th>Galpão</th></tr></thead><tbody>
     ${grupos.map(gr=>`<tr><td>${gr.tk?esc(gr.tk):`– <small style="color:var(--muted)">(${gr.obs})</small>`}${gr.fase?`<br><small style="color:var(--muted)">${esc(gr.fase)}</small>`:""}</td><td>${nf(gr.kg)}</td><td>${dtxt(gr)}</td><td>${ptxt(gr)}</td></tr>`).join("")}
-    </tbody></table></div><p class="sub" style="font-size:.85rem">Ticket dividido entre galpões aparece uma vez, com o total e a parte de cada galpão. Ração consumida inclui os dias estimados depois do último ajuste do estoque.</p>`;
+    </tbody></table></div><p class="sub" style="font-size:.85rem">Ticket dividido entre galpões aparece uma vez, com o total e a parte de cada galpão. Consumo e estoque estimados até hoje, inclusive os dias ainda não lançados.</p>`;
 }
 $("tkPrint").addEventListener("click",()=>{const n=(G.granja||"granja").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");gerarPDF($("ticketsSec"),`tickets-${n}-${isoD(new Date())}.pdf`,`${G.granja||"Granja"}: tickets de ração`,["#tkCab"])});
 /* ===== Gerador de PDF próprio (sem bibliotecas externas) ===== */
@@ -1174,7 +1179,7 @@ function renderConsumoNum(){
 }
 function renderFases(){
   const g=GALPOES[cur],r=calcFases(g),al=g.L.alojadas||1,inf=r.rows.some(x=>x.inf>0);
-  $("repFases").innerHTML=`<div class="tbl"><table class="tk"><thead><tr><th>Ração</th><th>Plano</th><th>Recebido</th><th>Consumido</th><th>No silo</th><th>Consumido por ave</th></tr></thead><tbody>
+  $("repFases").innerHTML=`<div class="tbl"><table class="tk"><thead><tr><th>Ração</th><th>Plano</th><th>Recebido</th><th>Consumido até hoje</th><th>No silo hoje</th><th>Consumido por ave</th></tr></thead><tbody>
   ${r.rows.map(x=>`<tr><td>${esc(x.nome)}</td><td>${nf(x.plan)} kg</td><td>${nf(x.rec)} kg</td><td>${nf(x.cons)} kg</td><td>${nf(x.silo)} kg</td><td>${nf(x.cons/al,3)} kg</td></tr>`).join("")}
   <tr style="font-weight:700"><td>Total</td><td>${nf(r.rows.reduce((a,x)=>a+x.plan,0))} kg</td><td>${nf(r.rows.reduce((a,x)=>a+x.rec,0))} kg</td><td>${nf(r.rows.reduce((a,x)=>a+x.cons,0))} kg</td><td>${nf(r.rows.reduce((a,x)=>a+x.silo,0))} kg</td><td>${nf(r.rows.reduce((a,x)=>a+x.cons,0)/al,3)} kg</td></tr></tbody></table></div>
   <p class="sub" style="font-size:.85rem">Plano = kg por ave × ${nf(al)} aves alojadas. O consumo de cada ração segue a ordem de entrada no silo (a primeira que entra é a primeira que sai).${r.atual?` No silo agora: ${esc(r.atual)}.`:""}${inf?" Cargas lançadas sem a fase foram distribuídas pelo plano, na ordem das rações.":""}</p>`;
