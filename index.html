@@ -134,6 +134,8 @@ input,select{font:500 1.1rem var(--sans);padding:10px 12px;border:1px solid var(
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 .tbl{overflow-x:auto;margin-bottom:18px}
+.oc{border-left:4px solid var(--corn);background:var(--surface);border-radius:0 10px 10px 0;padding:10px 14px;margin:0 0 12px}
+.oc p{margin:0 0 6px}.oc ul{margin:0;padding-left:18px}.oc li{margin:3px 0;line-height:1.45}
 #ticketBox[hidden]{display:none!important}
 .fases-cfg{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:8px 12px;align-items:end}
 #cnDia{scroll-margin-top:calc(70px + env(safe-area-inset-top,0px))}
@@ -289,7 +291,7 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
       <div id="ticketBox" hidden style="display:grid;gap:14px"><label>Ração (fase)<small>Sugerida pelo que o galpão já recebeu</small><select id="fFase"></select></label><label>Nº do ticket da ração<small>Se chegaram duas cargas no dia, separe os números por vírgula</small><input id="fTicket" type="text" autocomplete="off" maxlength="120"></label></div>
       <label>Leitura do hidrômetro (m³)<small>Com duas casas decimais, ex.: 5006,44. Deixe em branco se não leu hoje.</small><input id="fAgua" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9.,]*"></label>
       <label>Peso médio (g)<small>Só nos dias de pesagem</small><input id="fPeso" type="number" inputmode="numeric" min="0"></label>
-      <label>Observação<small>Opcional: tratamento, ocorrência, visita técnica</small><input id="fObs" type="text" autocomplete="off" maxlength="300"></label>
+      <label>Observação<small>Opcional: manejo, aparência do lote, tratamento, visita técnica</small><input id="fObs" type="text" autocomplete="off" maxlength="300"></label>
       <button class="btn" type="submit" id="formBtn">Salvar lançamento</button>
     </form>
     <h2>Lançamentos anteriores</h2>
@@ -406,6 +408,8 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
     <div class="meta" id="repMeta"></div>
     <h3>Desempenho por idade</h3>
     <div class="tbl"><table id="repTable"></table></div>
+    <h3>Observações do lote</h3>
+    <div id="repObs"></div>
     <h3>Rações do lote por fase</h3>
     <div id="repFases"></div>
     <h3>Consumo de ração: real x esperado</h3>
@@ -1192,10 +1196,54 @@ function renderFasesGranja(){
   ${lin.map(l=>`<tr><td>${esc(l.g)}</td>${nomes.map(n=>`<td>${l.m[n]!=null?nf(l.m[n]):"–"}</td>`).join("")}<td>${nf(l.t)}</td></tr>`).join("")}
   <tr style="font-weight:700"><td>Fazenda</td>${nomes.map(n=>`<td>${nf(tot[n])}</td>`).join("")}<td>${nf(lin.reduce((a,l)=>a+l.t,0))}</td></tr></tbody></table></div>`;
 }
+const OBS_REGRAS=[
+ {re:/(turbina|aquecedor|campanula|fornalha|\bgas\b|monoxido|fumaca|intoxic|asfixi)/,t:"Perda associada ao sistema de aquecimento. A queima incompleta do gás pode liberar monóxido de carbono, que não tem cheiro e é letal para pintinhos em poucos minutos, principalmente com o galpão fechado na fase de aquecimento. Recomenda-se: manutenção e regulagem dos aquecedores antes de cada lote, detector de monóxido de carbono no galpão, ventilação mínima mesmo nos dias frios e registro formal da ocorrência junto à integradora (e ao seguro, se houver)."},
+ {re:/(onfalit|umbigo|saco vitelino|vitelin|incubat|qualidade do pint)/,t:"Onfalite é a infecção do umbigo e do saco vitelino, geralmente ligada à qualidade do pintinho e às condições do incubatório (higiene, umidade e temperatura de incubação). A mortalidade costuma se concentrar nos primeiros 7 a 10 dias. Recomenda-se: registrar o lote de origem e o incubatório, comunicar a integradora, reforçar o conforto térmico e o acesso a água e ração nos primeiros dias, e fazer necropsia para confirmar."},
+ {re:/(medica|antibi|neo ?tc|neomicina|tetracicl|oxitetra|enroflox|amoxi|colistin|tratament)/,t:"Tratamento com medicamento registrado. Seguir a dose e a duração indicadas pelo veterinário, anotar produto, dose e dias de uso, e respeitar o período de carência do produto antes do abate."},
+ {re:/(vacina)/,t:"Vacinação registrada. Anotar a vacina, o lote do produto, a via de aplicação e a idade, e observar as aves nos dias seguintes (reação vacinal leve é esperada)."},
+ {re:/(frio|temperatura baixa|baixa temperatura|amontoad|graus)/,t:"Temperatura abaixo do ideal na fase inicial reduz o consumo de ração e água e compromete o peso aos 7 dias, com reflexo no peso final. Recomenda-se conferir a temperatura na altura das aves, a vedação das cortinas e a distribuição do aquecimento; aves amontoadas indicam frio."},
+ {re:/(calor|estresse term|ofeg|temperatura alta|abafad)/,t:"Estresse por calor reduz o consumo de ração, aumenta o consumo de água e pode elevar a mortalidade, principalmente na fase final. Recomenda-se ajustar a ventilação túnel e a nebulização, manter água fresca e com boa vazão e evitar manejo nas horas mais quentes."},
+ {re:/(energia|queda de luz|gerador|apag|sem luz)/,t:"Falta de energia afeta ventilação, água e aquecimento e pode causar mortalidade rápida. Recomenda-se gerador com partida automática, alarme de falta de energia e testes periódicos."},
+ {re:/(falta de agua|sem agua|bebedour|vazament|nipple|pressao da agua)/,t:"Falhas na água reduzem o consumo de ração e o ganho de peso. Conferir pressão, vazão, altura dos bebedouros e vazamentos, que também molham a cama."},
+ {re:/(falta de racao|sem racao|comedour|silo vazio|atras.{0,10}racao|linha de racao)/,t:"Falta ou atraso de ração interrompe o crescimento e aumenta a desuniformidade do lote. Programar os pedidos pelo ponto de pedido do silo e conferir o funcionamento das linhas."},
+ {re:/(respirat|espirr|ronqu|bronquit|coriza|tosse)/,t:"Sinais respiratórios podem ter origem viral ou bacteriana e pioram com amônia e poeira. Recomenda-se avaliação do veterinário, necropsia e revisão da ventilação e da qualidade da cama."},
+ {re:/(diarr|enterit|fezes|coccid|cama umida|cama molhada)/,t:"Alterações intestinais e cama úmida prejudicam a conversão alimentar e favorecem problemas de pata. Recomenda-se avaliação do veterinário e revisão da água, da ração e do manejo da cama."},
+ {re:/(perna|claudic|refug|aleij|manqu)/,t:"Problemas de perna e refugos reduzem o peso médio e aumentam as eliminações. Avaliar a causa com o técnico: qualidade do pintinho, cama, nutrição e velocidade de crescimento."},
+ {re:/(tecnico|veterin|visita)/,t:"Visita técnica registrada. Anotar as orientações recebidas e acompanhar os indicadores nos dias seguintes para confirmar o efeito das mudanças."},
+ {re:/(cama.{0,20}(mexid|revolv|seca|boa|solta|fofa)|(mexid|revolv).{0,15}cama)/,t:"Cama bem manejada, seca e solta, reduz a amônia, os problemas de pata e os respiratórios, e melhora o conforto das aves. Manter o revolvimento periódico, principalmente perto de bebedouros e comedouros, e conferir a umidade da cama nos dias seguintes."},
+ {re:/(boa aparencia|aparencia boa|bonit|uniform|empenad|lote bom|aves bonitas)/,t:"Boa aparência e uniformidade são sinais de lote saudável e de manejo adequado de ambiência, água e ração. Vale confirmar com a pesagem semanal: um lote uniforme tem a maioria das aves perto do peso médio."},
+ {re:/(bom consumo|consumo bom|consumindo bem|comendo bem|bebendo bem|consumo de (racao|agua) (bom|normal|otimo))/,t:"Bom consumo de ração e água é o primeiro sinal de lote saudável. Conferir se os números lançados confirmam o consumo esperado para a linhagem nesta idade."},
+ {re:/(ativ[ao]s|saudav|animad|esperto|disposi)/,t:"Aves ativas e bem dispostas indicam boa ambiência e saúde do lote. Manter o manejo e seguir observando o comportamento, que costuma ser o primeiro sinal de qualquer problema."},
+ {re:/(otimo|bom peso|recupera|melhor|reduzid|normaliz|evolu|excelente|bom desempenho|tudo certo|dentro do padrao)/,t:"Registro de bom desempenho. Manter o manejo atual e seguir acompanhando peso, consumo e mortalidade."}
+];
+function comentaObs(txt,d){
+  const n=txt.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase(),out=[];
+  const m=S.mort[d-1]||0,e=(S.elim||[])[d-1]||0,tot=m+e,al=L.alojadas||1;
+  const ant=[];for(let k=d-3;k<d;k++)if(k>=1)ant.push((S.mort[k-1]||0)+((S.elim||[])[k-1]||0));
+  const dep=[];for(let k=d+1;k<=d+3;k++)if(k<=S.idade)dep.push((S.mort[k-1]||0)+((S.elim||[])[k-1]||0));
+  const med=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null,b=med(ant),a=med(dep);
+  let num=`No dia ${d}: ${nf(m)} ${m===1?"ave morta":"aves mortas"}${e?` e ${nf(e)} ${e===1?"eliminada":"eliminadas"}`:""} (${nf(tot/al*100,2)}% das alojadas).`;
+  if(b!=null)num+=` Média dos dias anteriores: ${nf(b,0)} por dia.`;
+  if(b!=null&&tot>=50&&tot>b*5)num+=` Perda aguda, cerca de ${nf(tot/Math.max(b,1),0)} vezes acima do normal.`;
+  {const pw=S.pesos&&S.pesos[d];if(pw){const df=(pw/padraoAt(d)-1)*100;num+=` Peso médio de ${nf(pw)} g, ${df>=0?"+":""}${nf(df,1)}% em relação ao padrão da ${L.linhagem} (${nf(padraoAt(d))} g).`}}
+  if(b!=null&&b>=5&&tot<b*0.6)num+=` Queda de ${nf((1-tot/b)*100,0)}% em relação aos dias anteriores.`;
+  const agudo=b!=null&&tot>=50&&tot>b*5;
+  if(a!=null&&b!=null&&tot>b*1.5)num+=a<=b*1.3?` Nos dias seguintes a mortalidade voltou ao normal (média de ${nf(a,0)} por dia).`:(agudo&&a<=b*2.5)?` Nos dias seguintes a mortalidade caiu (média de ${nf(a,0)} por dia), ainda um pouco acima do que era antes.`:` Nos dias seguintes a mortalidade seguiu elevada (média de ${nf(a,0)} por dia).`;
+  if(tot/al>=0.02)num+=` Viabilidade atual do lote: ${nf(viabAt(S.idade),2)}%.`;
+  out.push(num);
+  let achou=false;
+  OBS_REGRAS.forEach(r=>{if(r.re.test(n)){let t=r.t;if(/neo ?tc/.test(n)&&/tratamento com medicamento/i.test(t))t+=" O Neo TC é um antibiótico à base de neomicina e tetraciclina; confira a bula do produto usado.";out.push(t);achou=true}});
+  if(!achou)out.push("Observação registrada. Acompanhar os indicadores nos dias seguintes para ver o efeito no lote.");
+  return out;
+}
+function renderObs(){
+  const itens=[];(S.dias||[]).forEach((d,i)=>{if(d.obs&&d.obs.trim())itens.push({dia:i+1,txt:d.obs.trim()})});
+  $("repObs").innerHTML=itens.length?itens.map(x=>`<div class="oc"><p><b>Dia ${x.dia}, ${dateAt(x.dia)}:</b> "${esc(x.txt)}"</p><ul>${comentaObs(x.txt,x.dia).map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")+'<p class="sub" style="font-size:.85rem">Comentários técnicos gerados pelo app a partir das observações e dos números do lote. Não substituem a avaliação do veterinário.</p>':'<p class="sub">Nenhuma observação lançada neste lote. Use o campo Observação no lançamento do dia para registrar o que viu no galpão: manejo, aparência do lote, tratamentos, visitas técnicas ou qualquer ocorrência.</p>';
+}
 function renderGalpaoSel(){
   $("galpaoSel").innerHTML=GALPOES.map((g,i)=>`<option value="${i}"${i===cur?" selected":""}>${g.L.galpao}</option>`).join("");
 }
-function renderAll(){renderGalpaoSel();renderHoje();renderRelatorio();renderLancar();renderFinanceiro();renderHist();renderTickets();renderFases();save()}
+function renderAll(){renderGalpaoSel();renderHoje();renderRelatorio();renderLancar();renderFinanceiro();renderHist();renderTickets();renderFases();renderObs();save()}
 
 function showTab(tab){
   document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===tab));
