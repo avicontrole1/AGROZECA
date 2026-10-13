@@ -134,6 +134,7 @@ input,select{font:500 1.1rem var(--sans);padding:10px 12px;border:1px solid var(
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 .tbl{overflow-x:auto;margin-bottom:18px}
+#ctForm .two,#ajForm .two,.abate-box .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#ctForm input,#ajForm input,.abate-box input,.abate-box select{min-width:0;width:100%;box-sizing:border-box}
 .abate-box{display:grid;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px}
 .oc{border-left:4px solid var(--corn);background:var(--surface);border-radius:0 10px 10px 0;padding:10px 14px;margin:0 0 12px}
 .oc p{margin:0 0 6px}.oc ul{margin:0;padding-left:18px}.oc li{margin:3px 0;line-height:1.45}
@@ -263,7 +264,7 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
     </div>
     <div class="silo" id="siloPanel"></div>
     <div class="ajuste" id="ajusteBox">
-      <div class="cfg-actions"><button class="btn" type="button" id="ajAbrir">Ajustar estoque do silo</button></div>
+      <div class="cfg-actions"><button class="btn" type="button" id="ajAbrir">Ajustar estoque do silo</button><button class="btn ghost" type="button" id="ctAbrir">Calcular ração até o corte</button></div>
       <form id="ajForm" hidden>
         <p class="sub" style="margin:0">Informe quanto de ração tem no silo. O app calcula o consumo real desde o último ajuste e atualiza o consumo diário e o gráfico.</p>
         <div class="two">
@@ -271,6 +272,15 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
           <label>Data<input id="ajData" type="date" required></label>
         </div>
         <div class="cfg-actions"><button class="btn" type="submit">Salvar ajuste</button><button class="btn ghost" type="button" id="ajCancel">Cancelar</button></div>
+      </form>
+      <form id="ctForm" hidden>
+        <p class="sub" style="margin:0">Informe quando a ração será cortada (jejum antes do carregamento). O app calcula o consumo até esse horário pelo ritmo real do lote e compara com o estoque do silo.</p>
+        <div class="two">
+          <label>Data do corte<input id="ctData" type="date" required></label>
+          <label>Hora do corte<input id="ctHora" type="time" required value="06:00"></label>
+        </div>
+        <div class="cfg-actions"><button class="btn" type="submit">Calcular</button><button class="btn ghost" type="button" id="ctFechar">Fechar</button></div>
+        <div id="ctRes"></div>
       </form>
       <div id="ajLista"></div>
     </div>
@@ -1359,6 +1369,38 @@ $("abateForm").addEventListener("submit",e=>{
   L.abatePrev=v;L.abateFonte=$("abFonte").value;renderAll();toast(`Abate salvo: ${n} dias de lote.`);
 });
 $("abLimpar").addEventListener("click",()=>{if(bloqueado){toast(msgBloq());return}delete L.abatePrev;delete L.abateFonte;renderAll();toast("Projeção voltou para 42 dias.")});
+function consumoPrevisto(g,t1,t2){
+  const S2=g.S,L2=g.L,dias=S2.dias||[],n=dias.length,a0=new Date(L2.alojamento);a0.setHours(0,0,0,0);const A=a0.getTime(),DIA=864e5;
+  const m7=dias.slice(-7),mortDia=m7.length?m7.reduce((x,d)=>x+(d.mort||0)+(d.elim||0),0)/m7.length:0;
+  const vivHoje=Math.max(1,(L2.alojadas||1)-dias.reduce((x,d)=>x+(d.mort||0)+(d.elim||0),0)),dHoje=Math.floor((Date.now()-A)/DIA)+1;
+  const r=S2.ritmo||1;let t=t1,kg=0,guarda=0;
+  while(t<t2&&guarda++<120){const d=Math.floor((t-A)/DIA)+1,fim=Math.min(A+d*DIA,t2),viv=Math.max(1,vivHoje-mortDia*Math.max(0,d-dHoje));
+    kg+=consumoAveLin(L2.linhagem,d)*viv/1000*r*((fim-t)/DIA);t=fim}
+  return kg;
+}
+function calcCorte(){
+  const g=GALPOES[cur],v=$("ctData").value,h=$("ctHora").value||"06:00";if(!v)return;
+  const tC=new Date(v+"T"+h+":00").getTime(),agora=Date.now();
+  if(tC<=agora){$("ctRes").innerHTML='<p class="sub">O horário do corte precisa ser depois de agora.</p>';return}
+  const est=Math.max(0,estoqueAgora().kg),cons=consumoPrevisto(g,agora,tC),saldo=est-cons,horas=(tC-agora)/36e5,cap=SILO.cap||0;
+  const r100=x=>Math.ceil(x/100)*100;
+  const quando=new Date(tC).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+  let concl;
+  if(saldo>=0)concl=`<div class="kpi"><span>Não precisa mandar ração</span><b>Sobra de ${nf(Math.floor(saldo/100)*100)} kg</b><small>no silo no momento do corte</small></div>`;
+  else{const falta=r100(-saldo);concl=`<div class="kpi"><span>Precisa mandar</span><b>${nf(falta)} kg</b><small>${falta>cap-est&&cap?`mais do que cabe no silo agora (cabem ${nf(Math.max(0,cap-est))} kg); dividir em duas cargas ou mandar mais perto do corte`:"para chegar até o corte sem sobra"}</small></div>`}
+  $("ctRes").innerHTML=`<div class="kpis">${concl}<div class="kpi"><span>Consumo até o corte</span><b>${nf(r100(cons))} kg</b><small>em ${nf(horas,0)} horas, até ${quando}</small></div><div class="kpi"><span>Estoque no silo agora</span><b>${nf(Math.round(est))} kg</b><small>estimado pelo último ajuste</small></div></div>
+  <p class="sub" style="font-size:.85rem;margin:6px 0 0">Cálculo pelo consumo da linhagem × aves vivas × ritmo real do lote${g.S.ritmo&&Math.abs(g.S.ritmo-1)>0.02?` (${nf(g.S.ritmo*100,0)}% do padrão)`:""}. Para mais precisão, ajuste o estoque do silo antes de calcular.</p>`;
+  g.L.corte={data:v,hora:h};save();
+}
+$("ctAbrir").addEventListener("click",()=>{
+  const g=GALPOES[cur];$("ctForm").hidden=false;$("ctAbrir").hidden=true;
+  if(g.L.corte&&g.L.corte.data){$("ctData").value=g.L.corte.data;$("ctHora").value=g.L.corte.hora||"06:00"}
+  else if(g.L.abatePrev){$("ctData").value=g.L.abatePrev;$("ctHora").value="06:00"}
+  else{const t=new Date(Date.now()+864e5);$("ctData").value=isoD(t)}
+  $("ctData").min=isoD(new Date());$("ctRes").innerHTML="";if($("ctData").value)calcCorte();
+});
+$("ctFechar").addEventListener("click",()=>{$("ctForm").hidden=true;$("ctAbrir").hidden=false});
+$("ctForm").addEventListener("submit",e=>{e.preventDefault();calcCorte()});
 function renderGalpaoSel(){
   $("galpaoSel").innerHTML=GALPOES.map((g,i)=>`<option value="${i}"${i===cur?" selected":""}>${g.L.galpao}</option>`).join("");
 }
@@ -1471,7 +1513,7 @@ $("encForm").addEventListener("submit",e=>{
     mortT,elimT,sobra,kg,gmd:(peso*1000-(g.S.pesos[0]||44))/idade,aguaT:aguaT||null,relAgua:racaoAg?aguaT/racaoAg:null,gastosCat,pesagens,peso0:g.S.pesos[0]||null});
   const hUlt=g.S.hidroUlt!=null?g.S.hidroUlt:(g.S.hidroInicial!=null?g.S.hidroInicial:null);
   g.S={idade:0,pesos:{0:g.S.pesos[0]},racaoAt:{},racaoTotal:0,mort:[],consumos:[],estoque:0,gastos:[],dias:[],estoqueInicial:0,ajustes:[],hidroInicial:hUlt,agua:[],hidroUlt:hUlt};
-  delete g.L.abatePrev;delete g.L.abateFonte;
+  delete g.L.abatePrev;delete g.L.abateFonte;delete g.L.corte;
   g.L.alojamento=(()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate())})();
   useGalpao(cur);fillCfg(cfgIdx);renderAll();
   $("cfgEditing").scrollIntoView({behavior:"smooth",block:"start"});
