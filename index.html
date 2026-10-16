@@ -148,7 +148,9 @@ input,select{font:500 1.1rem var(--sans);padding:10px 12px;border:1px solid var(
 .ajuste form{display:grid;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
 .ajrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:.92rem}
 .ajrow span{color:var(--muted);font-size:.82rem;display:block}
-#rcForm .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#rcForm input{min-width:0;width:100%;box-sizing:border-box}
+#rcForm .two,#tfForm .two,#piForm .two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#rcForm input,#tfForm input,#tfForm select,#piForm input{min-width:0;width:100%;box-sizing:border-box}
+.zoo{font-size:.84rem;min-width:0}.zoo th,.zoo td{padding:8px 5px}.zoo td small{display:block;color:var(--muted);font-size:.72rem;white-space:nowrap}.zoo tr.tot td{font-weight:700;border-top:2px solid var(--ink)}
+.pi-box{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--surface);display:grid;gap:10px;margin-bottom:12px}.pi-box form{display:grid;gap:10px}
 .corte-box{border:2px solid var(--corn);border-radius:10px;padding:14px 16px;background:var(--surface);display:grid;gap:8px}.corte-box h3{margin:0;font-size:1.05rem}.corte-box .big{font-family:'Barlow Condensed',sans-serif;font-size:1.9rem;font-weight:700;line-height:1}.corte-box p{margin:0;font-size:.9rem;color:var(--muted)}.corte-box .cfg-actions{margin-top:2px}.corte-box.falta{border-color:var(--alert)}.corte-box.falta .big{color:var(--alert)}
 .tk th,.tk td{white-space:nowrap}
 .tkl{min-width:0;font-size:.86rem}.tkl th,.tkl td{padding:8px 6px}.tkl th:nth-child(3),.tkl td:nth-child(3),.tkl th:nth-child(4),.tkl td:nth-child(4){text-align:left}.tkl td{vertical-align:top;line-height:1.35}.tkl td:nth-child(2),.tkl td:nth-child(3){white-space:nowrap}
@@ -198,6 +200,7 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media print{header,nav,.demo-note,#tab-hoje,#tab-lancar,#tab-financeiro,#tab-config,.no-print{display:none!important}#tab-relatorio{display:block!important}body{background:#fff;color:#000}.wrap{max-width:none}
   body.print-tk #tab-relatorio>*:not(#ticketsSec){display:none!important}
+  body.print-zoo #tab-relatorio>*:not(#zooSec){display:none!important}
   body.print-tk #ticketsSec .no-print,body.print-tk #licenca,body.print-tk #adminBar{display:none!important}
   body.print-tk #tkCab{display:block!important}
   .toast{display:none!important}
@@ -268,7 +271,7 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
     </div>
     <div class="silo" id="siloPanel"></div>
     <div class="ajuste" id="ajusteBox">
-      <div class="cfg-actions"><button class="btn" type="button" id="ajAbrir">Ajustar estoque do silo</button><button class="btn ghost" type="button" id="ctAbrir">Calcular ração até o corte</button><button class="btn ghost" type="button" id="rcAbrir">Registrar corte da ração</button></div>
+      <div class="cfg-actions"><button class="btn" type="button" id="ajAbrir">Ajustar estoque do silo</button><button class="btn ghost" type="button" id="ctAbrir">Calcular ração até o corte</button><button class="btn ghost" type="button" id="rcAbrir">Registrar corte da ração</button><button class="btn ghost" type="button" id="tfAbrir">Transferir ração</button></div>
       <form id="ajForm" hidden>
         <p class="sub" style="margin:0">Informe quanto de ração tem no silo. O app calcula o consumo real desde o último ajuste e atualiza o consumo diário e o gráfico.</p>
         <div class="two">
@@ -294,6 +297,17 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
         </div>
         <div class="cfg-actions"><button class="btn" type="submit" id="rcSalvar">Registrar corte</button><button class="btn ghost" type="button" id="rcCancel">Cancelar</button></div>
       </form>
+      <form id="tfForm" hidden>
+        <p class="sub" style="margin:0">Ração tirada do silo deste galpão e colocada em outro. Só muda o estoque e o consumo dos dois galpões; não entra nos tickets nem na ração recebida.</p>
+        <label>Para o galpão<select id="tfPara" required></select></label>
+        <div class="two">
+          <label>Quantidade (kg)<input id="tfKg" type="number" inputmode="numeric" min="1" required></label>
+          <label>Data<input id="tfData" type="date" required></label>
+        </div>
+        <label>Hora<input id="tfHora" type="time" required value="08:00"></label>
+        <div class="cfg-actions"><button class="btn" type="submit">Salvar transferência</button><button class="btn ghost" type="button" id="tfCancel">Cancelar</button></div>
+      </form>
+      <div id="tfLista"></div>
       <div id="rcLista"></div>
       <div id="ajLista"></div>
     </div>
@@ -472,12 +486,21 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
       <div class="cfg-actions"><button class="btn" type="submit">Salvar data do abate</button><button class="btn ghost" type="button" id="abLimpar">Voltar ao padrão (42 dias)</button></div>
     </form>
     <p class="sub" id="abInfo"></p>
+    <h3>Peso de saída informado pela integradora</h3>
+    <div class="pi-box" id="piBox"></div>
     <div class="tbl"><table id="projTable"></table></div>
     <div id="repNotes"></div>
     <h3>Conclusão</h3>
     <p id="repConc"></p>
     <h3>Lotes anteriores deste galpão</h3>
     <div id="histTec"></div>
+    <div id="zooSec">
+      <div id="zooCab" style="display:none"></div>
+      <h2>Resumo zootécnico da fazenda</h2>
+      <p class="sub" style="margin-top:-4px">Lote atual de cada galpão e a média geral da fazenda.</p>
+      <div class="cfg-actions no-print" style="margin-bottom:14px"><button class="btn ghost" type="button" id="zooPdf">Gerar PDF do resumo</button></div>
+      <div id="zooRel"></div>
+    </div>
     <div id="ticketsSec">
       <div id="tkCab"><h2 style="margin:0" id="tkCabTit"></h2><p class="sub" style="margin:2px 0 0" id="tkCabSub"></p></div>
       <h2>Tickets de ração da granja</h2>
@@ -605,12 +628,13 @@ function recalcula(S,teste){
     const viv=Math.max(1,(Lx.alojadas||1)-perd-pd/2);perd+=pd;
     const a0=new Date(Lx.alojamento);a0.setHours(0,0,0,0);const t1=a0.getTime()+i*864e5,fed=1-jejumMs(S,t1,t1+864e5)/864e5;
     w.push(Math.max(0.001,consumoAveLin(Lx.linhagem,i+1)*viv/1000*fed))}
+  const tfD=transfPorDia(S,Lx);
   const ajM=new Map();(S.ajustes||[]).slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).forEach(a=>{if(a.dia>=1&&a.dia<=n)ajM.set(a.dia-1,+a.kg)});
   const anc=[{i:-1,est:S.estoqueInicial||0}];[...ajM.keys()].sort((a,b)=>a-b).forEach(i=>anc.push({i,est:ajM.get(i)}));
   const cons=new Array(n).fill(0),real=new Array(n).fill(false);let ratio=null;
   for(let k=1;k<anc.length;k++){
     const a=anc[k-1],b=anc[k];let cargas=0,ws=0;
-    for(let i=a.i+1;i<=b.i;i++){cargas+=+S.dias[i].carga||0;ws+=w[i]}
+    for(let i=a.i+1;i<=b.i;i++){cargas+=(+S.dias[i].carga||0)+(tfD[i]||0);ws+=w[i]}
     const tot=a.est+cargas-b.est;
     if(tot<0)return {erro:b.i+1,tipo:"silo"};
     for(let i=a.i+1;i<=b.i;i++){cons[i]=tot*w[i]/ws;real[i]=true}
@@ -619,12 +643,18 @@ function recalcula(S,teste){
   const r=ratio==null?1:Math.min(1.4,Math.max(0.6,ratio)),ult=anc[anc.length-1].i;
   for(let i=ult+1;i<n;i++)cons[i]=w[i]*r;
   let est=S.estoqueInicial||0,tot=0;const estD=[],pesos={0:S.pesos[0]},racaoAt={};
-  for(let i=0;i<n;i++){const d=S.dias[i];est=ajM.has(i)?ajM.get(i):est+(+d.carga||0)-cons[i];estD.push(est);tot+=cons[i];if(d.peso>0){pesos[i+1]=d.peso;racaoAt[i+1]=tot}}
+  for(let i=0;i<n;i++){const d=S.dias[i];est=ajM.has(i)?ajM.get(i):est+(+d.carga||0)+(tfD[i]||0)-cons[i];estD.push(est);tot+=cons[i];if(d.peso>0){pesos[i+1]=d.peso;racaoAt[i+1]=tot}}
   const ra=recalculaAgua(S,teste);if(ra.erro)return ra;
   if(teste)return {ok:true};
   Object.assign(S,{mort,elim,consumos:cons.map(v=>Math.round(v)),consumoReal:real,estDia:estD,ritmo:r,ultLeitura:ult,racaoTotal:tot,estoque:est,pesos,racaoAt,idade:n});
   return {ok:true};
 }
+/* Transferências de ração entre galpões: mexem só no silo/consumo (zootécnico), nunca nos tickets. */
+const transfDe=S2=>(Array.isArray(S2.transf)?S2.transf:[]);
+function transfPorDia(S2,Lx){const a0=new Date(Lx.alojamento);a0.setHours(0,0,0,0);const m={};transfDe(S2).forEach(t=>{const i=Math.max(0,Math.floor((t.ts-a0.getTime())/864e5)-1);m[i]=(m[i]||0)+(+t.kg||0)});return m}
+const transfLiq=S2=>transfDe(S2).reduce((a,t)=>a+(+t.kg||0),0);
+function transfPend(g){const tf=transfPorDia(g.S,g.L),n=(g.S.dias||[]).length;let k=0;Object.keys(tf).forEach(i=>{if(+i>=n)k+=tf[i]});return k}
+function consDesdeLanc(g){return Math.max(0,(g.S.estoque||0)+transfPend(g)-Math.max(0,estoqueAgoraDe(g).kg))}
 /* Corte de ração (jejum para o abate): enquanto o corte está ativo o galpão não consome ração. */
 const cortesDe=S2=>(Array.isArray(S2.cortes)?S2.cortes:[]);
 const corteAtivo=S2=>{const c=cortesDe(S2).filter(x=>!x.volta).sort((a,b)=>b.ts-a.ts)[0];return c&&c.ts<=Date.now()?c:null};
@@ -640,6 +670,7 @@ function estoqueAgoraDe(g){
   if(aj){kg=+aj.kg;t0=quando(aj);dRef=aj.dia}
   else{kg=S2.estoqueInicial||0;t0=A;dRef=0}
   for(let i=dRef;i<n;i++)kg+=+dias[i].carga||0;
+  transfDe(S2).forEach(x=>{if(x.ts>t0)kg+=+x.kg||0});
   const vivDia=d=>{let p=0;for(let i=0;i<Math.min(d-1,n);i++)p+=(dias[i].mort||0)+(dias[i].elim||0);return Math.max(1,(L2.alojadas||1)-p)};
   const agora=Date.now(),r=S2.ritmo||1;let t=Math.max(t0,A),guarda=0;
   while(t<agora&&guarda++<120){
@@ -669,9 +700,12 @@ function calcFases(g){
   const fila=[];
   const entra=(kg,nome)=>{let i=nome!=null&&idx[nome]!=null?idx[nome]:null;const inf=i==null;if(inf)i=pick();rows[i].rec+=kg;if(inf)rows[i].inf+=kg;fila.push({i,kg})};
   if(S2.estoqueInicial>0)entra(S2.estoqueInicial,F[0].nome);
-  (S2.dias||[]).forEach((d,k)=>{if(+d.carga>0)entra(+d.carga,d.fase||null);let c=(S2.consumos||[])[k]||0;
+  const tfF=transfPorDia(S2,g.L),tira=kg=>{while(kg>0&&fila.length){const q=fila[fila.length-1],t=Math.min(q.kg,kg);rows[q.i].rec-=t;q.kg-=t;kg-=t;if(q.kg<=0.001)fila.pop()}};
+  const aplicaTf=k=>{const v=tfF[k]||0;if(v>0)entra(v,null);else if(v<0)tira(-v)};
+  (S2.dias||[]).forEach((d,k)=>{if(+d.carga>0)entra(+d.carga,d.fase||null);aplicaTf(k);let c=(S2.consumos||[])[k]||0;
     while(c>0&&fila.length){const q=fila[0],t=Math.min(q.kg,c);rows[q.i].cons+=t;q.kg-=t;c-=t;if(q.kg<=0.001)fila.shift()}});
-  let extra=Math.max(0,(S2.estoque||0)-Math.max(0,estoqueAgoraDe(g).kg));
+  Object.keys(tfF).forEach(k=>{if(+k>=(S2.dias||[]).length)aplicaTf(+k)});
+  let extra=consDesdeLanc(g);
   while(extra>0&&fila.length){const q=fila[0],t=Math.min(q.kg,extra);rows[q.i].cons+=t;q.kg-=t;extra-=t;if(q.kg<=0.001)fila.shift()}
   fila.forEach(q=>rows[q.i].silo+=q.kg);
   const atual=fila.length?rows[fila[0].i].nome:null;
@@ -708,13 +742,13 @@ function projection(){
   const hojeI=Math.max(S.idade,idadeHoje(L));
   const rest=Math.max(0,A-S.idade),mortA=perdasAte(S.idade)+mortDia*rest,vivA=Math.max(1,L.alojadas-mortA);
   /* ração consumida até hoje (lançado + estimado desde o último lançamento) */
-  let consHoje=S.racaoTotal||0;try{consHoje+=Math.max(0,(S.estoque||0)-Math.max(0,estoqueAgora().kg)-0)}catch(_){}
+  let consHoje=S.racaoTotal||0;try{consHoje+=consDesdeLanc(GALPOES[cur])}catch(_){}
   /* consumo projetado de amanhã/hoje até o abate: curva da linhagem × aves vivas × ritmo real */
   const r=S.ritmo||1;let consFut=0,viv=vivas(S.idade);
   {const m=new Date();m.setHours(24,0,0,0);const frac=Math.min(1,Math.max(0,(m-Date.now())/864e5));if(hojeI<A&&S.idade<=hojeI)consFut+=consumoAveLin(L.linhagem,hojeI)*viv/1000*r*frac}
   for(let k=hojeI+1;k<=A;k++){viv=Math.max(1,viv-mortDia);consFut+=consumoAveLin(L.linhagem,k)*viv/1000*r}
   const racaoA=consHoje+consFut,convA=racaoA/(vivA*pesoA/1000);
-  const recebida=(S.estoqueInicial||0)+(S.dias||[]).reduce((a,x)=>a+(+x.carga||0),0);
+  const recebida=(S.estoqueInicial||0)+(S.dias||[]).reduce((a,x)=>a+(+x.carga||0),0)+transfLiq(S);
   return {A,pesoA,mortDia,mortA,vivA,viabA:vivA/L.alojadas*100,convA,racaoA,consHoje,consFut,recebida,
     peso42:pesoA,mort42:mortA,viv42:vivA,viab42:vivA/L.alojadas*100,conv42:convA,racao42:racaoA};
 }
@@ -970,7 +1004,69 @@ function drawSilo(){
     <p class="silo-foot">${(()=>{const f=idadeHoje(L)-S.idade;return f>0?`<b>Faltam lançar ${f} ${f===1?"dia":"dias"}.</b> O estoque desses dias é estimado; se chegou ração, lance as cargas para ele ficar certo. `:""})()}${leitTxt}${EA.kg<0?" Atenção: a conta ficou negativa; confira se alguma carga não foi lançada.":""}${cA?"":` O pedido sugerido deixa ${nf(SILO.margem)} kg de folga.`}</p>`;
 }
 
-function renderRelatorio(){
+function zooDe(g){
+  /* indicadores zootécnicos do lote atual de um galpão, na base mais confiável disponível */
+  const S2=g.S,L2=g.L,al=L2.alojadas||0,n=S2.idade||0;if(!n||!al)return null;
+  const perd=d=>(S2.mort||[]).slice(0,d).reduce((a,b)=>a+(b||0),0)+(S2.elim||[]).slice(0,d).reduce((a,b)=>a+(b||0),0);
+  const p0=(S2.pesos||{})[0]||44,pi=L2.pesoInteg;let r;
+  if(pi&&pi.kg>0){const a0=new Date(L2.alojamento);a0.setHours(0,0,0,0);
+    let idade=pi.data?Math.round((new Date(pi.data+"T00:00:00")-a0)/864e5):(L2.abatePrev?Math.round((new Date(L2.abatePrev+"T00:00:00")-a0)/864e5):idadeHoje(L2));idade=Math.max(1,idade);
+    const viv=pi.aves>0?pi.aves:al-perd(n),peso=pi.kg*1000,rac=(S2.racaoTotal||0)+consDesdeLanc(g);
+    r={idade,viv,peso,rac,base:"integradora"}}
+  else{const ks=Object.keys(S2.pesos||{}).map(Number).filter(d=>d>0&&d<=n).sort((a,b)=>a-b),d=ks[ks.length-1];
+    if(!d)return {g:L2.galpao,idade:n,viv:al-perd(n),viab:(al-perd(n))/al*100,sem:true};
+    r={idade:d,viv:al-perd(d),peso:S2.pesos[d],rac:(S2.racaoAt||{})[d]||0,base:"pesagem"}}
+  const kg=r.viv*r.peso/1000,ca=r.rac>0&&kg>0?r.rac/kg:null,viab=r.viv/al*100,gmd=(r.peso-p0)/r.idade,iepV=ca?viab*(r.peso/1000)/(r.idade*ca)*100:null;
+  return {g:L2.galpao,al,idade:r.idade,idadeHoje:n,viv:r.viv,viab,peso:r.peso,gmd,ca,iep:iepV,rac:r.rac,kg,base:r.base,p0};
+}
+function renderZoo(){
+  const box=$("zooRel");if(!box)return;
+  const z=GALPOES.map(zooDe).filter(Boolean);
+  if(!z.length){box.innerHTML='<p class="sub">Nenhum galpão com lote em andamento.</p>';return}
+  const ok=z.filter(x=>!x.sem&&x.ca);
+  let tot=null;
+  if(ok.length){const sv=ok.reduce((a,x)=>a+x.viv,0),sa=ok.reduce((a,x)=>a+x.al,0),sk=ok.reduce((a,x)=>a+x.kg,0),sr=ok.reduce((a,x)=>a+x.rac,0);
+    const idade=ok.reduce((a,x)=>a+x.idade*x.viv,0)/sv,peso=sk*1000/sv,viab=sv/sa*100,ca=sr/sk,gmd=ok.reduce((a,x)=>a+x.gmd*x.viv,0)/sv;
+    tot={idade,peso,viab,ca,gmd,iep:viab*(peso/1000)/(idade*ca)*100,viv:sv,sk}}
+  const cIep=v=>v==null?"":v>=400?"pos":v<330?"neg":"";
+  const linha=x=>x.sem?`<tr><td>${esc(x.g)}<small>${x.idade} dias</small></td><td>${nf(x.viab,1)}%</td><td colspan="4" style="color:var(--muted)">sem pesagem lançada</td></tr>`:
+    `<tr><td>${esc(x.g)}<small>${x.base==="integradora"?"integradora":"pesagem"} ${x.idade}d</small></td><td>${nf(x.viab,1)}%</td><td>${nf(x.peso/1000,3)}</td><td>${nf(x.gmd,1)}</td><td>${x.ca?nf(x.ca,3):"–"}</td><td class="${cIep(x.iep)}">${x.iep?nf(x.iep):"–"}</td></tr>`;
+  box.innerHTML=`<div class="tbl"><table class="zoo"><thead><tr><th>Galpão</th><th>Viab.</th><th>Peso (kg)</th><th>GMD (g)</th><th>Conv.</th><th>IEP</th></tr></thead><tbody>
+    ${z.map(linha).join("")}
+    ${tot?`<tr class="tot"><td>Fazenda<small>média ${nf(tot.idade,1)}d</small></td><td>${nf(tot.viab,1)}%</td><td>${nf(tot.peso/1000,3)}</td><td>${nf(tot.gmd,1)}</td><td>${nf(tot.ca,3)}</td><td class="${cIep(tot.iep)}">${nf(tot.iep)}</td></tr>`:""}
+    </tbody></table></div>
+    ${tot?`<div class="kpis"><div class="kpi"><span>Aves na base</span><b>${nf(tot.viv)}</b><small>${ok.length} ${ok.length===1?"galpão":"galpões"}</small></div><div class="kpi"><span>Peso vivo total</span><b>${nf(Math.round(tot.sk))} kg</b><small>aves × peso de cada galpão</small></div></div>`:""}
+    <p class="sub" style="font-size:.85rem">Cada galpão usa o peso informado pela integradora, quando houver; se não, a última pesagem, com a ração, as aves e a idade desse mesmo dia. A média da fazenda é ponderada pelo número de aves. Conversão = ração consumida ÷ kg de frango vivo; IEP = viabilidade × peso ÷ (idade × conversão) × 100.</p>`;
+}
+function renderPesoInteg(){
+  const box=$("piBox");if(!box)return;const pi=L.pesoInteg;if(piEdit!==false&&piEdit!==cur)piEdit=false;
+  if(piEdit!==false&&$("piForm"))return;
+  if(pi&&pi.kg>0&&piEdit===false){const z=zooDe(GALPOES[cur]);
+    box.innerHTML=`<div class="kpis"><div class="kpi"><span>Peso médio de saída</span><b>${nf(pi.kg,3)} kg</b><small>${pi.data?"abate em "+new Date(pi.data+"T00:00:00").toLocaleDateString("pt-BR")+", ":""}${z?z.idade+" dias":""}</small></div>
+      ${z&&z.ca?`<div class="kpi"><span>Conversão</span><b>${nf(z.ca,3)}</b><small>${nf(Math.round(z.rac))} kg de ração ÷ ${nf(Math.round(z.kg))} kg vivos</small></div><div class="kpi"><span>Viabilidade</span><b>${nf(z.viab,2)}%</b><small>${nf(z.viv)} aves${pi.aves?" carregadas":" vivas"}</small></div><div class="kpi"><span>GMD / IEP</span><b>${nf(z.gmd,1)} g · ${nf(z.iep)}</b><small>ganho médio diário e índice de eficiência</small></div>`:""}</div>
+      <p class="sub" style="font-size:.85rem;margin:0">Esse peso entra no resumo zootécnico da fazenda e já vem preenchido ao encerrar o lote.${MOSTRA_POR&&pi.por?` Lançado por ${esc(pi.por)}.`:""}</p>
+      <div class="cfg-actions no-print"><button class="btn ghost" type="button" id="piEditar">Editar peso</button><button class="sbtn danger" type="button" id="piDel">Remover</button></div>`}
+  else if(piEdit===false){box.innerHTML=`<p class="sub" style="margin:0">Quando a integradora mandar o peso médio do carregamento, lance aqui antes de encerrar o lote. O app calcula conversão, viabilidade, GMD e IEP com o peso real.</p><div class="cfg-actions no-print"><button class="btn" type="button" id="piEditar">Lançar peso da integradora</button></div>`}
+  else{const al=GALPOES[cur].L;box.innerHTML=`<form id="piForm" class="no-print"><div class="two"><label>Peso médio (kg)<input id="piKg" type="number" inputmode="decimal" step="0.001" min="0.3" max="6" required value="${pi&&pi.kg||""}"></label><label>Data do abate<input id="piData" type="date" value="${(pi&&pi.data)||al.abatePrev||isoD(new Date())}"></label></div>
+      <label>Aves carregadas (opcional)<small>Se deixar em branco, usa as aves vivas do lote</small><input id="piAves" type="number" inputmode="numeric" min="1" value="${pi&&pi.aves||""}"></label>
+      <div class="cfg-actions"><button class="btn" type="submit">Salvar peso</button><button class="btn ghost" type="button" id="piCancel">Cancelar</button></div></form>`;setTimeout(()=>$("piKg")&&$("piKg").focus(),0)}
+}
+let piEdit=false;
+$("piBox").addEventListener("click",e=>{
+  const id=e.target.id;
+  if(id==="piEditar"){if(bloqueado){toast(msgBloq());return}piEdit=cur;renderPesoInteg()}
+  else if(id==="piCancel"){piEdit=false;$("piBox").innerHTML="";renderPesoInteg()}
+  else if(id==="piDel"){if(bloqueado){toast(msgBloq());return}const b=e.target;if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Confirmar";setTimeout(()=>{if(b.isConnected){b.classList.remove("confirm");b.textContent="Remover"}},4000);return}
+    delete L.pesoInteg;renderAll();toast("Peso da integradora removido.")}
+});
+$("piBox").addEventListener("submit",e=>{
+  e.preventDefault();if(bloqueado){toast(msgBloq());return}
+  let kg=+String($("piKg").value).replace(",",".");if(kg>50)kg=kg/1000;
+  if(!(kg>=0.3&&kg<=6)){toast("Informe o peso médio em kg, por exemplo 3,150.");return}
+  const aves=+$("piAves").value||null;if(aves&&aves>L.alojadas){toast("As aves carregadas não podem passar das alojadas.");return}
+  L.pesoInteg={kg,data:$("piData").value||null,aves,por:quem()};piEdit=false;renderAll();toast(`Peso da integradora salvo: ${nf(kg,3)} kg.`);
+});
+function renderRelatorio(){renderPesoInteg();renderZoo();
   const d=ultimaPesagem(),pr=projection();
   $("repSub").textContent=`${G.granja}, ${L.galpao}. Emitido em ${dateAt(S.idade)}, ${S.idade} dias de lote.`;
   $("repMeta").innerHTML=[["Linhagem",L.linhagem],["Alojamento",dateAt(0)],["Aves alojadas",nf(L.alojadas)],["Aves vivas",nf(vivas(S.idade))],["Mortalidade acumulada",nf(mortAte(S.idade))],["Aves eliminadas",nf(elimAte(S.idade))],["Ração consumida",nf(S.racaoTotal)+" kg"]].map(([a,b])=>`<div><span>${a}</span><b>${b}</b></div>`).join("");
@@ -1099,7 +1195,7 @@ function renderTickets(){
     dias.forEach((d,i)=>{if(+d.carga>0){rec+=+d.carga;const fase=d.fase||"";const tk=(d.ticket||"").split(",").map(t=>t.trim()).filter(Boolean).join(", ");
       if(tk)tks.add(tk);else semN++;
       const dt=new Date(g.L.alojamento);dt.setDate(dt.getDate()+i+1);linhas.push({tk,fase,data:dt,g:g.L.galpao,dia:i+1,kg:+d.carga})}});
-    const eH=Math.max(0,estoqueAgoraDe(g).kg),cH=(S2.racaoTotal||0)+Math.max(0,(S2.estoque||0)-eH);res.push({g:g.L.galpao,n:tks.size+semN,rec,cons:cH,est:eH});tR+=rec;tC+=cH;tE+=eH;
+    const eH=Math.max(0,estoqueAgoraDe(g).kg),cH=(S2.racaoTotal||0)+consDesdeLanc(g),tf=transfLiq(S2);res.push({g:g.L.galpao,n:tks.size+semN,rec,tf,cons:cH,est:eH});tR+=rec;tC+=cH;tE+=eH;
   });
   if(!linhas.length){$("ticketsRel").innerHTML='<p class="sub">Nenhuma carga de ração lançada ainda.</p>';window.__tk=null;return}
   const mapa=new Map(),grupos=[];
@@ -1111,15 +1207,16 @@ function renderTickets(){
   const fd=d=>d.toLocaleDateString("pt-BR");
   const dtxt=gr=>{const u=[...new Set(gr.datas.map(fd))];return u.join("<br>")};
   const ptxt=gr=>gr.partes.length>1?gr.partes.map(p=>`<span style="white-space:nowrap">${esc(p.g)}: ${nf(p.kg)}</span>`).join("<br>"):`<span style="white-space:nowrap">${esc(gr.partes[0].g)}</span>`;
-  window.__tk={linhas,grupos,res,tot:{tN:nTk,tR,tC,tE}};
-  $("ticketsRel").innerHTML=renderFasesGranja()+`<h3>Resumo por galpão</h3><div class="tbl"><table class="tk"><thead><tr><th>Galpão</th><th>Tickets</th><th>Ração recebida</th><th>Consumida até hoje</th><th>Estoque hoje (estimado)</th></tr></thead><tbody>
-    ${res.map(r=>`<tr><td>${esc(r.g)}</td><td>${r.n}</td><td>${nf(r.rec)} kg</td><td>${nf(r.cons)} kg</td><td>${nf(r.est)} kg</td></tr>`).join("")}
-    <tr style="font-weight:700"><td>Fazenda</td><td>${nTk}</td><td>${nf(tR)} kg</td><td>${nf(tC)} kg</td><td>${nf(tE)} kg</td></tr></tbody></table></div>
-    <p class="sub" style="font-size:.85rem;margin-top:-8px">Na linha Fazenda, um ticket dividido entre galpões conta uma vez só.</p>
+  window.__tk={linhas,grupos,res,tot:{tN:nTk,tR,tC,tE}};const temTf=res.some(r=>r.tf);
+  $("ticketsRel").innerHTML=renderFasesGranja()+`<h3>Resumo por galpão</h3><div class="tbl"><table class="tk"><thead><tr><th>Galpão</th><th>Tickets</th><th>Ração recebida</th>${temTf?"<th>Transferida</th>":""}<th>Consumida até hoje</th><th>Estoque hoje (estimado)</th></tr></thead><tbody>
+    ${res.map(r=>`<tr><td>${esc(r.g)}</td><td>${r.n}</td><td>${nf(r.rec)} kg</td>${temTf?`<td>${r.tf?(r.tf>0?"+":"−")+nf(Math.abs(r.tf))+" kg":"–"}</td>`:""}<td>${nf(r.cons)} kg</td><td>${nf(r.est)} kg</td></tr>`).join("")}
+    <tr style="font-weight:700"><td>Fazenda</td><td>${nTk}</td><td>${nf(tR)} kg</td>${temTf?"<td>–</td>":""}<td>${nf(tC)} kg</td><td>${nf(tE)} kg</td></tr></tbody></table></div>
+    <p class="sub" style="font-size:.85rem;margin-top:-8px">Na linha Fazenda, um ticket dividido entre galpões conta uma vez só.${temTf?" Transferências entre galpões não entram na ração recebida nem nos tickets: só mudam o consumo de cada galpão.":""}</p>
     <h3>Todos os tickets</h3><div class="tbl"><table class="tkl"><thead><tr><th>Ticket</th><th>Kg</th><th>Data</th><th>Galpão</th></tr></thead><tbody>
     ${grupos.map(gr=>`<tr><td>${gr.tk?esc(gr.tk):`– <small style="color:var(--muted)">(${gr.obs})</small>`}${gr.fase?`<br><small style="color:var(--muted)">${esc(gr.fase)}</small>`:""}</td><td>${nf(gr.kg)}</td><td>${dtxt(gr)}</td><td>${ptxt(gr)}</td></tr>`).join("")}
     </tbody></table></div><p class="sub" style="font-size:.85rem">Ticket dividido entre galpões aparece uma vez, com o total e a parte de cada galpão. Consumo e estoque estimados até hoje, inclusive os dias ainda não lançados.</p>`;
 }
+$("zooPdf").addEventListener("click",()=>{const n=(G.granja||"granja").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");gerarPDF($("zooSec"),`resumo-zootecnico-${n}-${isoD(new Date())}.pdf`,`${G.granja||"Granja"}: resumo zootécnico`,[])});
 $("tkPrint").addEventListener("click",()=>{const n=(G.granja||"granja").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");gerarPDF($("ticketsSec"),`tickets-${n}-${isoD(new Date())}.pdf`,`${G.granja||"Granja"}: tickets de ração`,["#tkCab"])});
 /* ===== Gerador de PDF próprio (sem bibliotecas externas) ===== */
 const PDFW=(()=>{const w={" ":278,"!":278,'"':355,"#":556,"$":556,"%":889,"&":667,"'":191,"(":333,")":333,"*":389,"+":584,",":278,"-":333,".":278,"/":278,":":278,";":278,"<":584,"=":584,">":584,"?":556,"@":1015,"[":278,"]":278,"_":556,"|":260};
@@ -1218,6 +1315,38 @@ $("tkCsv").addEventListener("click",()=>{
   a.download=`tickets-${nome}-${isoD(new Date())}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);toast("Planilha gerada");
 });
 
+function renderTransf(){
+  const box=$("tfLista");if(!box)return;const l=transfDe(S).slice().sort((a,b)=>b.ts-a.ts);
+  const fmt=t=>new Date(t).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(","," às");
+  box.innerHTML=l.length?`<div class="sub" style="margin:0 0 2px;font-weight:600">Transferências de ração deste lote</div>`+l.slice(0,10).map(t=>`<div class="ajrow"><div><b>${t.kg<0?"Saiu":"Entrou"} ${nf(Math.abs(t.kg))} kg</b><span>${t.kg<0?"para o":"vindo do"} ${esc(t.outro||"?")}, ${fmt(t.ts)}${MOSTRA_POR&&t.por?`, por ${esc(t.por)}`:""}</span></div><button type="button" class="sbtn danger" data-tfdel="${t.id}">Excluir</button></div>`).join(""):"";
+  $("tfAbrir").hidden=!$("tfForm").hidden||GALPOES.length<2;
+}
+$("tfAbrir").addEventListener("click",()=>{if(bloqueado){toast(msgBloq());return}
+  const ops=GALPOES.map((g,i)=>i===cur?"":`<option value="${i}">${esc(g.L.galpao)}</option>`).join("");$("tfPara").innerHTML=ops;
+  const h=new Date();$("tfData").value=isoD(h);$("tfData").max=isoD(h);$("tfHora").value=String(h.getHours()).padStart(2,"0")+":00";$("tfKg").value="";
+  $("tfForm").hidden=false;$("tfAbrir").hidden=true;$("tfKg").focus()});
+$("tfCancel").addEventListener("click",()=>{$("tfForm").hidden=true;renderTransf()});
+$("tfForm").addEventListener("submit",e=>{
+  e.preventDefault();if(bloqueado){toast(msgBloq());return}
+  const kg=Math.round(+$("tfKg").value),j=+$("tfPara").value,gO=GALPOES[cur],gD=GALPOES[j];
+  const ts=new Date($("tfData").value+"T"+($("tfHora").value||"08:00")+":00").getTime();
+  if(!(kg>0)||!gD||j===cur){toast("Informe o galpão de destino e a quantidade.");return}
+  if(ts>Date.now()+6e4){toast("A transferência não pode ser depois de agora.");return}
+  if(ts<gO.L.alojamento.getTime()||ts<gD.L.alojamento.getTime()){toast("A data precisa ser depois do alojamento dos dois galpões.");return}
+  const est=estoqueAgoraDe(gO).kg,id="tf"+Date.now().toString(36),por=quem();
+  [gO.S,gD.S].forEach(x=>{if(!Array.isArray(x.transf))x.transf=[]});
+  gO.S.transf.push({id,ts,kg:-kg,outro:gD.L.galpao,por});gD.S.transf.push({id,ts,kg,outro:gO.L.galpao,por});
+  const t1=recalcula(gO.S,true),t2=recalcula(gD.S,true);
+  if(t1.erro||t2.erro){gO.S.transf=gO.S.transf.filter(x=>x.id!==id);gD.S.transf=gD.S.transf.filter(x=>x.id!==id);toast("Essa transferência deixa o estoque de um dos galpões impossível pelos ajustes já feitos. Confira a quantidade e a data.");return}
+  recalcula(gO.S);recalcula(gD.S);$("tfForm").hidden=true;renderAll();
+  toast(kg>est+200?`Transferência salva, mas o silo de ${gO.L.galpao} tinha só cerca de ${nf(Math.max(0,Math.round(est)))} kg. Confira com um ajuste.`:`Transferidos ${nf(kg)} kg de ${gO.L.galpao} para ${gD.L.galpao}.`);
+});
+$("tfLista").addEventListener("click",e=>{
+  const b=e.target.closest("[data-tfdel]");if(!b)return;if(bloqueado){toast(msgBloq());return}
+  if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Confirmar";setTimeout(()=>{if(b.isConnected){b.classList.remove("confirm");b.textContent="Excluir"}},4000);return}
+  const id=b.dataset.tfdel;GALPOES.forEach(g=>{if(transfDe(g.S).some(x=>x.id===id)){g.S.transf=g.S.transf.filter(x=>x.id!==id);recalcula(g.S)}});
+  renderAll();toast("Transferência excluída dos dois galpões.");
+});
 function renderCortes(){
   const box=$("rcLista");if(!box)return;const c=corteAtivo(S),fmt=t=>new Date(t).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).replace(","," às");
   const hist=cortesDe(S).filter(x=>x.volta).sort((a,b)=>b.ts-a.ts);
@@ -1266,7 +1395,7 @@ $("rcLista").addEventListener("click",e=>{
   if(b.dataset.rcdel)S.cortes=S.cortes.filter(x=>x.ts!==+b.dataset.rcdel||!x.volta);
   recalcula(S);renderAll();toast("Corte desfeito. O consumo volta a ser contado.");
 });
-function renderAjustes(){renderCortes();
+function renderAjustes(){renderCortes();renderTransf();
   const a=(S.ajustes||[]).slice().sort((x,y)=>y.dia-x.dia||(y.ts||0)-(x.ts||0));
   $("ajLista").innerHTML=a.length?`<div class="sub" style="margin:0 0 2px;font-weight:600">Ajustes deste lote</div>`+a.slice(0,8).map(x=>`<div class="ajrow"><div><b>${nf(x.kg)} kg</b><span>${dateAt(x.dia)}${x.ts?" às "+new Date(x.ts).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):""}, dia ${x.dia} do lote${x.dia>S.idade?" (aguardando o lançamento do dia)":""}${MOSTRA_POR&&x.por?`, por ${esc(x.por)}`:""}</span></div><button type="button" class="sbtn danger" data-ajdel="${x.dia}|${x.ts||0}">Excluir</button></div>`).join(""):"";
 }
@@ -1569,7 +1698,7 @@ $("encOpen").addEventListener("click",()=>{
   if(typeof bloqueado!=="undefined"&&bloqueado){toast(msgBloq());return}
   const g=GALPOES[cfgIdx];
   $("eData").value=isoDate(new Date());$("eAves").value=g.L.alojadas-g.S.mort.reduce((a,b)=>a+b,0)-(g.S.elim||[]).reduce((a,b)=>a+b,0);
-  $("ePeso").value="";$("eSobra").value=corteAtivo(g.S)?Math.max(0,Math.round(estoqueAgoraDe(g).kg/10)*10):g.S.estoque;$("eValor").value="";
+  $("ePeso").value=g.L.pesoInteg&&g.L.pesoInteg.kg?g.L.pesoInteg.kg:"";if(g.L.pesoInteg&&g.L.pesoInteg.aves)$("eAves").value=g.L.pesoInteg.aves;if(g.L.pesoInteg&&g.L.pesoInteg.data)$("eData").value=g.L.pesoInteg.data;$("eSobra").value=corteAtivo(g.S)?Math.max(0,Math.round(estoqueAgoraDe(g).kg/10)*10):g.S.estoque;$("eValor").value="";
   $("encForm").hidden=false;$("encOpen").hidden=true;encCama();if(GALPOES[cfgIdx]&&GALPOES[cfgIdx].L.abatePrev&&!$("eData").value)$("eData").value=GALPOES[cfgIdx].L.abatePrev;$("ePeso").focus();
 });
 $("encCancel").addEventListener("click",resetEnc);
@@ -1601,7 +1730,7 @@ $("encForm").addEventListener("submit",e=>{
     mortT,elimT,sobra,kg,gmd:(peso*1000-(g.S.pesos[0]||44))/idade,aguaT:aguaT||null,relAgua:racaoAg?aguaT/racaoAg:null,gastosCat,pesagens,peso0:g.S.pesos[0]||null});
   const hUlt=g.S.hidroUlt!=null?g.S.hidroUlt:(g.S.hidroInicial!=null?g.S.hidroInicial:null);
   g.S={idade:0,pesos:{0:g.S.pesos[0]},racaoAt:{},racaoTotal:0,mort:[],consumos:[],estoque:0,gastos:[],dias:[],estoqueInicial:0,ajustes:[],hidroInicial:hUlt,agua:[],hidroUlt:hUlt};
-  delete g.L.abatePrev;delete g.L.abateFonte;delete g.L.corte;
+  delete g.L.abatePrev;delete g.L.abateFonte;delete g.L.corte;delete g.L.pesoInteg;
   g.L.alojamento=(()=>{const t=new Date();return new Date(t.getFullYear(),t.getMonth(),t.getDate())})();
   useGalpao(cur);fillCfg(cfgIdx);renderAll();
   $("cfgEditing").scrollIntoView({behavior:"smooth",block:"start"});
@@ -1666,7 +1795,7 @@ $("finList").addEventListener("click",e=>{
   if(bloqueado){toast(msgBloq());return}
   S.gastos=S.gastos.filter(g=>g.id!==+b.dataset.id);renderFinanceiro();toast("Gasto excluído");
 });
-$("printBtn").addEventListener("click",()=>{const n=(L.galpao||"galpao").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");gerarPDF($("tab-relatorio"),`relatorio-${n}-${isoD(new Date())}.pdf`,`${G.granja||"Granja"}: relatório do ${L.galpao}`,["#ticketsSec"])});
+$("printBtn").addEventListener("click",()=>{const n=(L.galpao||"galpao").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");gerarPDF($("tab-relatorio"),`relatorio-${n}-${isoD(new Date())}.pdf`,`${G.granja||"Granja"}: relatório do ${L.galpao}`,["#ticketsSec","#zooSec"])});
 let bloqueado=false;
 const msgBloq=()=>`Acesso vencido. Para renovar, fale com ${CLIENTE.contato}.`;
 let tt;function toast(t){const el=$("toast");el.textContent=t;el.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>el.classList.remove("show"),3200)}
