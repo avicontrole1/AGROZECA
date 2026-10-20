@@ -431,6 +431,7 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
       <div class="two">
         <label>Peso médio no abate (kg)<input id="ePeso" type="number" inputmode="decimal" min="0.1" step="0.001" required></label>
         <label>Sobra recolhida (kg)<small>Ração que a integradora recolheu do silo</small><input id="eSobra" type="number" inputmode="numeric" min="0" required></label>
+        <p class="sub" id="eRacTxt" style="margin:-4px 0 0;font-size:.88rem"></p>
       </div>
       <label>Valor recebido da integração (R$)<small>Valor líquido do lote, já com os descontos</small><input id="eValor" type="number" inputmode="decimal" min="0" step="0.01" required></label>
       <div class="kpi" id="eCama" style="margin:0"></div>
@@ -654,6 +655,9 @@ const transfDe=S2=>(Array.isArray(S2.transf)?S2.transf:[]);
 function transfPorDia(S2,Lx){const a0=new Date(Lx.alojamento);a0.setHours(0,0,0,0);const m={};transfDe(S2).forEach(t=>{const i=Math.max(0,Math.floor((t.ts-a0.getTime())/864e5)-1);m[i]=(m[i]||0)+(+t.kg||0)});return m}
 const transfLiq=S2=>transfDe(S2).reduce((a,t)=>a+(+t.kg||0),0);
 function transfPend(g){const tf=transfPorDia(g.S,g.L),n=(g.S.dias||[]).length;let k=0;Object.keys(tf).forEach(i=>{if(+i>=n)k+=tf[i]});return k}
+/* Balanço de ração do lote: carga do alojamento + cargas (tickets) ± transferências − sobra recolhida */
+function balancoRacao(g,sobra){const S2=g.S,ini=+S2.estoqueInicial||0,car=(S2.dias||[]).reduce((a,d)=>a+(+d.carga||0),0),tf=transfLiq(S2),sb=Math.max(0,+sobra||0);
+  return {ini,car,tf,sobra:sb,recebida:ini+car,cons:Math.max(0,ini+car+tf-sb)}}
 function consDesdeLanc(g){return Math.max(0,(g.S.estoque||0)+transfPend(g)-Math.max(0,estoqueAgoraDe(g).kg))}
 /* Corte de ração (jejum para o abate): enquanto o corte está ativo o galpão não consome ração. */
 const cortesDe=S2=>(Array.isArray(S2.cortes)?S2.cortes:[]);
@@ -1011,7 +1015,7 @@ function zooDe(g){
   const p0=(S2.pesos||{})[0]||44,pi=L2.pesoInteg;let r;
   if(pi&&pi.kg>0){const a0=new Date(L2.alojamento);a0.setHours(0,0,0,0);
     let idade=pi.data?Math.round((new Date(pi.data+"T00:00:00")-a0)/864e5):(L2.abatePrev?Math.round((new Date(L2.abatePrev+"T00:00:00")-a0)/864e5):idadeHoje(L2));idade=Math.max(1,idade);
-    const viv=pi.aves>0?pi.aves:al-perd(n),peso=pi.kg*1000,rac=(S2.racaoTotal||0)+consDesdeLanc(g);
+    const viv=pi.aves>0?pi.aves:al-perd(n),peso=pi.kg*1000,rac=balancoRacao(g,Math.max(0,estoqueAgoraDe(g).kg)).cons;
     r={idade,viv,peso,rac,base:"integradora"}}
   else{const ks=Object.keys(S2.pesos||{}).map(Number).filter(d=>d>0&&d<=n).sort((a,b)=>a-b),d=ks[ks.length-1];
     if(!d)return {g:L2.galpao,idade:n,viv:al-perd(n),viab:(al-perd(n))/al*100,sem:true};
@@ -1175,7 +1179,7 @@ function renderLoteDet(num){
       ${kpi("Lucro por ave",brl(lpa),lpaA==null?"":cmp(lpa,lpaA,2,false).replace(/([+−])([\d.,]+)/,(m,sg,v)=>sg+"R$ "+v))}
     </div>
     <h3>Produção</h3>
-    ${dl([["Aves alojadas",nf(r.alojadas)],["Aves carregadas",nf(r.aves)],["Mortalidade",r.mortT!=null?`${nf(r.mortT)} aves (${nf(mortPct,2)}%)`:"–"],["Eliminação",r.elimT!=null?`${nf(r.elimT)} aves (${nf(r.elimT/r.alojadas*100,2)}%)`:"–"],["Idade de abate",r.idade+" dias"],["Peso vivo total",nf(kgv)+" kg"],["Ração consumida",nf(r.racao)+" kg"],["Ração por ave carregada",nf(r.racao/r.aves,2)+" kg"],["Sobra recolhida",r.sobra!=null?nf(r.sobra)+" kg":"–"],["Água consumida",r.aguaT?nf(r.aguaT)+" litros":"–"],["Relação água : ração",r.relAgua?nf(r.relAgua,2)+" L/kg":"–"]])}
+    ${dl([["Aves alojadas",nf(r.alojadas)],["Aves carregadas",nf(r.aves)],["Mortalidade",r.mortT!=null?`${nf(r.mortT)} aves (${nf(mortPct,2)}%)`:"–"],["Eliminação",r.elimT!=null?`${nf(r.elimT)} aves (${nf(r.elimT/r.alojadas*100,2)}%)`:"–"],["Idade de abate",r.idade+" dias"],["Peso vivo total",nf(kgv)+" kg"],...(r.racaoRecebida!=null?[["Ração recebida (tickets)",nf(r.racaoRecebida)+" kg"]]:[]),...(r.racaoTransf?[["Transferências de ração",(r.racaoTransf>0?"+":"−")+nf(Math.abs(r.racaoTransf))+" kg"]]:[]),["Ração consumida",nf(r.racao)+" kg"],["Ração por ave carregada",nf(r.racao/r.aves,2)+" kg"],["Sobra recolhida",r.sobra!=null?nf(r.sobra)+" kg":"–"],["Água consumida",r.aguaT?nf(r.aguaT)+" litros":"–"],["Relação água : ração",r.relAgua?nf(r.relAgua,2)+" L/kg":"–"]])}
     ${pes?`<h3>Pesagens</h3><div class="tbl"><table><thead><tr><th>Idade</th><th>Peso</th><th>Padrão</th><th>Diferença</th><th>Conversão</th><th>Viabilidade</th></tr></thead><tbody>${pes}</tbody></table></div>`:""}
     <h3>Financeiro</h3>
     ${dl([["Valor recebido da integração",brl(r.valor)],["Venda de cama de frango",brl(r.cama||0)],["Receita total",brl((r.valor||0)+(r.cama||0))],["Gastos do lote",brl(r.gastos)],["Lucro",`<span style="color:var(${r.lucro<0?"--alert":"--ok"})">${brl(r.lucro)}</span>`],["Lucro por ave alojada",brl(lpa)],["Custo por ave alojada",brl(r.gastos/r.alojadas)],["Custo por kg vivo",brl(r.gastos/kgv)],["Receita por kg vivo",brl(r.valor/kgv)]])}
@@ -1698,9 +1702,13 @@ $("encOpen").addEventListener("click",()=>{
   if(typeof bloqueado!=="undefined"&&bloqueado){toast(msgBloq());return}
   const g=GALPOES[cfgIdx];
   $("eData").value=isoDate(new Date());$("eAves").value=g.L.alojadas-g.S.mort.reduce((a,b)=>a+b,0)-(g.S.elim||[]).reduce((a,b)=>a+b,0);
-  $("ePeso").value=g.L.pesoInteg&&g.L.pesoInteg.kg?g.L.pesoInteg.kg:"";if(g.L.pesoInteg&&g.L.pesoInteg.aves)$("eAves").value=g.L.pesoInteg.aves;if(g.L.pesoInteg&&g.L.pesoInteg.data)$("eData").value=g.L.pesoInteg.data;$("eSobra").value=corteAtivo(g.S)?Math.max(0,Math.round(estoqueAgoraDe(g).kg/10)*10):g.S.estoque;$("eValor").value="";
+  $("ePeso").value=g.L.pesoInteg&&g.L.pesoInteg.kg?g.L.pesoInteg.kg:"";if(g.L.pesoInteg&&g.L.pesoInteg.aves)$("eAves").value=g.L.pesoInteg.aves;if(g.L.pesoInteg&&g.L.pesoInteg.data)$("eData").value=g.L.pesoInteg.data;$("eSobra").value=Math.max(0,Math.round(estoqueAgoraDe(g).kg/10)*10);$("eValor").value="";
   $("encForm").hidden=false;$("encOpen").hidden=true;encCama();if(GALPOES[cfgIdx]&&GALPOES[cfgIdx].L.abatePrev&&!$("eData").value)$("eData").value=GALPOES[cfgIdx].L.abatePrev;$("ePeso").focus();
 });
+function eRacTxt(){const g=GALPOES[cfgIdx];if(!g||!$("eRacTxt"))return;const b=balancoRacao(g,$("eSobra").value);
+  $("eRacTxt").innerHTML=`Ração do lote: recebida ${nf(b.recebida)} kg${b.tf?` ${b.tf>0?"+":"−"} transferida ${nf(Math.abs(b.tf))} kg`:""} − sobra ${nf(b.sobra)} kg = <b>consumida ${nf(b.cons)} kg</b>`}
+$("eSobra").addEventListener("input",eRacTxt);
+$("encOpen").addEventListener("click",()=>setTimeout(eRacTxt,0));
 $("encCancel").addEventListener("click",resetEnc);
 $("encForm").addEventListener("submit",e=>{
   e.preventDefault();
@@ -1712,7 +1720,7 @@ $("encForm").addEventListener("submit",e=>{
   if(idade<1){toast("A data do abate precisa ser depois do alojamento.");return}
   if(aves>g.L.alojadas){toast("As aves carregadas não podem passar das aves alojadas.");return}
   if(!encConfirm){encConfirm=true;$("encSubmit").textContent="Toque de novo para confirmar";return}
-  const racao=g.S.racaoTotal+Math.max(0,g.S.estoque-sobra),kg=aves*peso;
+  const bal=balancoRacao(g,sobra),racao=bal.cons,kg=aves*peso;
   const conv=racao>0?racao/kg:null,viab=aves/g.L.alojadas*100,iepF=conv?viab*peso/(idade*conv)*100:null;
   const gastos=g.S.gastos.reduce((a,x)=>a+x.val,0),camaV=camaDoLote(g,loteAtualNum(g)),lucro=valor+camaV-gastos;
   g.hist=g.hist||[];
@@ -1727,7 +1735,7 @@ $("encForm").addEventListener("submit",e=>{
     return {d,peso:p,padrao:Math.round(padTab(pad,d)),conv:r&&viv>0?r/(viv*p/1000):null,viab:viv/g.L.alojadas*100};
   });
   g.hist.push({lote:n,galpao:g.L.galpao,linhagem:g.L.linhagem,alojamento:isoDate(g.L.alojamento),abate:isoDate(ab),alojadas:g.L.alojadas,aves,idade,peso,racao,conv,viab,iep:iepF,gastos,valor,lucro,
-    mortT,elimT,sobra,kg,gmd:(peso*1000-(g.S.pesos[0]||44))/idade,aguaT:aguaT||null,relAgua:racaoAg?aguaT/racaoAg:null,gastosCat,pesagens,peso0:g.S.pesos[0]||null});
+    mortT,elimT,sobra,kg,racaoRecebida:bal.recebida,racaoTransf:bal.tf,gmd:(peso*1000-(g.S.pesos[0]||44))/idade,aguaT:aguaT||null,relAgua:racaoAg?aguaT/racaoAg:null,gastosCat,pesagens,peso0:g.S.pesos[0]||null});
   const hUlt=g.S.hidroUlt!=null?g.S.hidroUlt:(g.S.hidroInicial!=null?g.S.hidroInicial:null);
   g.S={idade:0,pesos:{0:g.S.pesos[0]},racaoAt:{},racaoTotal:0,mort:[],consumos:[],estoque:0,gastos:[],dias:[],estoqueInicial:0,ajustes:[],hidroInicial:hUlt,agua:[],hidroUlt:hUlt};
   delete g.L.abatePrev;delete g.L.abateFonte;delete g.L.corte;delete g.L.pesoInteg;
