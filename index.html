@@ -1239,7 +1239,34 @@ function renderHist(){
   $("histTec").innerHTML=`<div class="tbl"><table><thead><tr><th>Lote</th><th>Abate</th><th>Idade</th><th>Peso</th><th>Conversão</th><th>Viabilidade</th><th>IEP</th><th></th></tr></thead><tbody>${rs.map(r=>`<tr><td>${r.lote}</td><td>${fmtData(r.abate)}</td><td>${r.idade} d</td><td>${nf(r.peso,3)} kg</td><td>${r.conv?nf(r.conv,2):"–"}</td><td>${nf(r.viab,2)}%</td><td>${r.iep?nf(r.iep):"–"}</td><td><button type="button" class="vbtn" data-lote="${r.lote}">Ver tudo</button></td></tr>`).join("")}</tbody></table></div>`;
   $("histFin").innerHTML=`<div class="tbl"><table><thead><tr><th>Lote</th><th>Integração</th><th>Cama</th><th>Gastos</th><th>Lucro</th><th>Lucro por ave</th><th>Custo por ave</th><th></th></tr></thead><tbody>${rs.map(r=>`<tr><td>${r.lote} (${fmtData(r.abate)})</td><td>${brl(r.valor)}</td><td>${brl(r.cama||0)}</td><td>${brl(r.gastos)}</td><td class="${r.lucro<0?"neg":"pos"}">${brl(r.lucro)}</td><td class="${r.lucro<0?"neg":""}">${brl(r.lucro/r.alojadas)}</td><td>${brl(r.gastos/r.alojadas)}</td><td><button type="button" class="vbtn" data-lote="${r.lote}">Ver tudo</button></td></tr>`).join("")}</tbody></table></div><p class="sub" style="font-size:.85rem">Lucro = valor recebido da integração mais a venda de cama de frango do lote, menos os gastos lançados no lote. Valores por ave consideram as aves alojadas.</p>`;
 }
-let loteVolta="relatorio",loteNum=null;
+let loteVolta="relatorio",loteNum=null,ltEdit=null;
+const detDe=r=>r.det||RECUP_DET[r.galpao+"|"+r.alojamento]||null;
+function tkLoteHtml(r){
+  const d=detDe(r);if(!d)return '<p class="sub">Os tickets deste lote não foram guardados (lote encerrado antes da versão que guarda os detalhes).</p>';
+  const a0=new Date(r.alojamento+"T00:00:00"),dt=i=>{const x=new Date(a0);x.setDate(x.getDate()+i+1);return x};
+  const fases=fasesDe(GALPOES[cur].L).map(f=>f.nome);
+  const ls=[];d.dias.forEach((x,i)=>{if(+x.carga>0)ls.push(i)});
+  const linha=i=>{const x=d.dias[i];if(ltEdit===i)return `<tr><td colspan="4"><form id="ltForm" data-i="${i}" style="display:grid;gap:8px">
+      <div class="two"><label>Nº do ticket<input id="ltNum" value="${esc(x.ticket||"")}" placeholder="ex.: 125847"></label><label>Kg<input id="ltKg" type="number" inputmode="numeric" min="0" value="${+x.carga}"></label></div>
+      <label>Fase<select id="ltFase"><option value="">Sem fase</option>${fases.map(f=>`<option ${x.fase===f?"selected":""}>${esc(f)}</option>`).join("")}</select></label>
+      <div class="cfg-actions"><button class="btn" type="submit">Salvar</button><button class="btn ghost" type="button" data-lt="cancel">Cancelar</button><button class="sbtn danger" type="button" data-lt="del" data-i="${i}">Excluir carga</button></div></form></td></tr>`;
+    return `<tr><td>${x.ticket?esc(x.ticket):"–"}${x.fase?`<br><small style="color:var(--muted)">${esc(x.fase)}</small>`:""}</td><td>${nf(+x.carga)}</td><td>${dt(i).toLocaleDateString("pt-BR")}</td><td class="no-print"><button type="button" class="sbtn" data-lt="edit" data-i="${i}">Corrigir</button></td></tr>`};
+  const tot=ls.reduce((t,i)=>t+(+d.dias[i].carga||0),0)+(+d.ini||0);
+  return `<div class="tbl"><table class="tkl"><thead><tr><th>Ticket</th><th>Kg</th><th>Data</th><th class="no-print"></th></tr></thead><tbody>
+    ${d.ini>0?`<tr><td>– <small style="color:var(--muted)">(carga do alojamento)</small></td><td>${nf(d.ini)}</td><td>${a0.toLocaleDateString("pt-BR")}</td><td class="no-print"></td></tr>`:""}${ls.map(linha).join("")}
+    <tr class="tot" style="font-weight:700"><td>Total</td><td>${nf(tot)}</td><td></td><td class="no-print"></td></tr></tbody></table></div>
+    <p class="sub no-print" style="font-size:.85rem">Ao mudar os kg de uma carga, a ração recebida e a consumida do lote mudam junto, e a conversão é recalculada.</p>`;
+}
+function ltSalvar(r,i,novo){
+  const g=GALPOES[cur];if(!r.det)r.det=JSON.parse(JSON.stringify(detDe(r)));
+  const x=r.det.dias[i],dKg=(novo?+novo.carga||0:0)-(+x.carga||0);
+  if(novo){x.carga=+novo.carga||0;if(novo.ticket)x.ticket=novo.ticket;else delete x.ticket;if(novo.fase)x.fase=novo.fase;else delete x.fase}
+  else{delete x.carga;delete x.ticket;delete x.fase}
+  if(dKg){if(r.racaoRecebida!=null)r.racaoRecebida+=dKg;r.racao=Math.max(0,(r.racao||0)+dKg);const kg=r.kg||r.aves*r.peso;
+    r.conv=r.racao>0&&kg>0?r.racao/kg:null;r.iep=r.conv?r.viab*r.peso/(r.idade*r.conv)*100:null;}
+  r.editado={ts:Date.now(),por:quem()};ltEdit=null;renderAll();renderLoteDet(loteNum);
+  toast(novo?(dKg?`Ticket corrigido. Ração do lote ${dKg>0?"+":"−"}${nf(Math.abs(dKg))} kg; conversão ${r.conv?nf(r.conv,3):"–"}.`:"Ticket corrigido."):`Carga excluída. Conversão ${r.conv?nf(r.conv,3):"–"}.`);
+}
 function leRacTxt(){const g=GALPOES[cur],r=(g.hist||[]).find(x=>x.lote===loteNum);if(!r||!$("leRac"))return;const sb=+$("leSobra").value||0,rac=Math.max(0,r.racao+(r.sobra||0)-sb);
   $("leRac").innerHTML=`Ração consumida passa de ${nf(Math.round(r.racao))} kg para <b>${nf(Math.round(rac))} kg</b>.`}
 $("loteDet").addEventListener("click",e=>{
@@ -1247,9 +1274,18 @@ $("loteDet").addEventListener("click",e=>{
   if(e.target.id==="leCancel"){$("leForm").hidden=true;$("leAbrir").hidden=false}
 });
 $("loteDet").addEventListener("input",e=>{if(e.target.id==="leSobra")leRacTxt()});
+$("loteDet").addEventListener("click",e=>{
+  const b=e.target.closest("[data-lt]");if(!b)return;if(bloqueado){toast(msgBloq());return}
+  const r=(GALPOES[cur].hist||[]).find(x=>x.lote===loteNum);if(!r)return;
+  if(b.dataset.lt==="edit"){ltEdit=+b.dataset.i;$("ltTk").innerHTML=tkLoteHtml(r);setTimeout(()=>$("ltNum")&&$("ltNum").focus(),0)}
+  else if(b.dataset.lt==="cancel"){ltEdit=null;$("ltTk").innerHTML=tkLoteHtml(r)}
+  else if(b.dataset.lt==="del"){if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Confirmar exclusão";return}ltSalvar(r,+b.dataset.i,null)}
+});
 $("loteDet").addEventListener("submit",e=>{
   e.preventDefault();if(bloqueado){toast(msgBloq());return}
   const g=GALPOES[cur],r=(g.hist||[]).find(x=>x.lote===loteNum);if(!r)return;
+  if(e.target.id==="ltForm"){const kg=Math.round(+$("ltKg").value);if(!(kg>0)){toast("Informe os kg da carga, ou use Excluir carga.");return}
+    ltSalvar(r,+e.target.dataset.i,{carga:kg,ticket:$("ltNum").value.trim(),fase:$("ltFase").value});return}
   const v=id=>$(id).value===""?null:+$(id).value;
   const aloj=v("leAloj"),aves=v("leAves"),mort=v("leMort"),elim=v("leElim"),sobra=v("leSobra")||0,valor=v("leValor")||0,data=$("leData").value;let peso=v("lePeso");
   if(peso>50)peso/=1000;
@@ -1288,6 +1324,8 @@ function renderLoteDet(num){
     <h3>Produção</h3>
     ${dl([["Aves alojadas",nf(r.alojadas)],["Aves carregadas",nf(r.aves)],["Mortalidade",r.mortT!=null?`${nf(r.mortT)} aves (${nf(mortPct,2)}%)`:"–"],["Eliminação",r.elimT!=null?`${nf(r.elimT)} aves (${nf(r.elimT/r.alojadas*100,2)}%)`:"–"],["Idade de abate",r.idade+" dias"],["Peso vivo total",nf(kgv)+" kg"],...(r.racaoRecebida!=null?[["Ração recebida (tickets)",nf(r.racaoRecebida)+" kg"]]:[]),...(r.racaoTransf?[["Transferências de ração",(r.racaoTransf>0?"+":"−")+nf(Math.abs(r.racaoTransf))+" kg"]]:[]),["Ração consumida",nf(r.racao)+" kg"],["Ração por ave carregada",nf(r.racao/r.aves,2)+" kg"],["Sobra recolhida",r.sobra!=null?nf(r.sobra)+" kg":"–"],["Água consumida",r.aguaT?nf(r.aguaT)+" litros":"–"],["Relação água : ração",r.relAgua?nf(r.relAgua,2)+" L/kg":"–"]])}
     ${pes?`<h3>Pesagens</h3><div class="tbl"><table><thead><tr><th>Idade</th><th>Peso</th><th>Padrão</th><th>Diferença</th><th>Conversão</th><th>Viabilidade</th></tr></thead><tbody>${pes}</tbody></table></div>`:""}
+    <h3>Tickets de ração do lote</h3>
+    <div id="ltTk">${tkLoteHtml(r)}</div>
     <h3>Financeiro</h3>
     ${dl([["Valor recebido da integração",brl(r.valor)],["Venda de cama de frango",brl(r.cama||0)],["Receita total",brl((r.valor||0)+(r.cama||0))],["Gastos do lote",brl(r.gastos)],["Lucro",`<span style="color:var(${r.lucro<0?"--alert":"--ok"})">${brl(r.lucro)}</span>`],["Lucro por ave alojada",brl(lpa)],["Custo por ave alojada",brl(r.gastos/r.alojadas)],["Custo por kg vivo",brl(r.gastos/kgv)],["Receita por kg vivo",brl(r.valor/kgv)]])}
     ${cats.length?`<h3>Gastos por categoria</h3>${dl(cats.map(([c,v])=>[c,`${brl(v)} (${nf(v/r.gastos*100)}%)`]))}`:""}
@@ -1305,7 +1343,7 @@ function renderLoteDet(num){
     </form></div>`;
   return true;
 }
-function abreLote(num,de){loteNum=num;if(renderLoteDet(num)){loteVolta=de;showTab("lote")}}
+function abreLote(num,de){loteNum=num;ltEdit=null;if(renderLoteDet(num)){loteVolta=de;showTab("lote")}}
 $("histTec").addEventListener("click",e=>{const b=e.target.closest("[data-lote]");if(b)abreLote(+b.dataset.lote,"relatorio")});
 $("histFin").addEventListener("click",e=>{const b=e.target.closest("[data-lote]");if(b)abreLote(+b.dataset.lote,"financeiro")});
 $("loteVoltar").addEventListener("click",()=>showTab(loteVolta));
