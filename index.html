@@ -443,6 +443,7 @@ td.neg{color:var(--alert)} td.pos{color:var(--ok)}
       <button class="btn ghost" type="button" id="exportBtn" hidden>Salvar cópia dos dados</button>
       <label class="btn ghost file-btn">Restaurar uma cópia<input type="file" id="importInput" accept=".json,application/json"></label>
     </div>
+    <p class="sub" style="font-size:.78rem;margin:8px 0 0">Versão do app: 23/10/2026 00h10</p>
     <p class="sub" id="acessoInfo" style="margin-top:18px"></p>
     <div id="adminPanel" hidden>
       <h2>Usuários do app</h2>
@@ -577,6 +578,7 @@ let SILO={cap:25000,pedido:10000,margem:1000};
 const G={granja:"Granja Boa Vista"};
 const GALPOES=[{L,S,SILO,hist:[]}];let cur=0,cfgIdx=0;
 function useGalpao(i){cur=i;({L,S,SILO}=GALPOES[i]);padrao=PADROES[L.linhagem]}
+let voando=0;const enviados=[];
 let FB=null,alvoUid=null,loaded=false,lastJs="",saveTimer=null,pend=null,saveChain=Promise.resolve(),souAdmin=false;
 const snapshot=()=>JSON.stringify({G,cur,gastoId,galpoes:GALPOES.map(g=>({L:{...g.L,alojamento:isoD(g.L.alojamento)},S:g.S,SILO:g.SILO,hist:g.hist||[]}))});
 function save(){
@@ -588,7 +590,8 @@ function save(){
 function flush(){
   clearTimeout(saveTimer);if(!pend)return saveChain;
   const p=pend;pend=null;
-  saveChain=saveChain.then(()=>setDoc(doc(FB.db,"agz_equipe","principal"),{json:p.js,salvoEm:serverTimestamp(),por:quem()})).catch(()=>toast("Não foi possível salvar. Confira a internet e tente de novo."));
+  voando++;enviados.push(p.js);if(enviados.length>8)enviados.shift();
+  saveChain=saveChain.then(()=>setDoc(doc(FB.db,"agz_equipe","principal"),{json:p.js,salvoEm:serverTimestamp(),por:quem()})).finally(()=>{voando=Math.max(0,voando-1)}).catch(()=>toast("Não foi possível salvar. Confira a internet e tente de novo."));
   return saveChain;
 }
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flush()});
@@ -1150,7 +1153,7 @@ function renderFaz(){
 }
 $("fazPer").addEventListener("change",e=>{fazSel=+e.target.value||0;renderFaz()});
 $("fazPdf").addEventListener("click",()=>{const R=window.__faz&&window.__faz.R;if(!R)return;const n=(G.granja||"granja").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-");
-  gerarPDF($("fazSec"),`relatorio-geral-${n}-${isoD(new Date(R.fim))}.pdf`,`${G.granja||"Fazenda"}: relatório geral dos lotes`,["#fazCab"])});
+  const hh=new Date();gerarPDF($("fazSec"),`relatorio-geral-${n}-${isoD(new Date(R.fim))}-gerado-${String(hh.getHours()).padStart(2,"0")}h${String(hh.getMinutes()).padStart(2,"0")}.pdf`,`${G.granja||"Fazenda"}: relatório geral dos lotes`,["#fazCab"])});
 $("fazCsv").addEventListener("click",()=>{const f=window.__faz;if(!f)return;const q=v=>`"${String(v).replace(/"/g,'""')}"`;
   const rows=[["Ticket","Fase","Data","Galpão","Kg"]];f.grupos.forEach(gr=>gr.partes.forEach((p,i)=>rows.push([gr.tk||gr.obs,gr.fase||"",gr.datas[Math.min(i,gr.datas.length-1)].toLocaleDateString("pt-BR"),p.g,String(p.kg).replace(".",",")])));
   const b=new Blob(["\ufeff"+rows.map(r=>r.map(q).join(";")).join("\n")],{type:"text/csv"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`tickets-lotes-encerrados-${isoD(new Date(f.R.fim))}.csv`;a.click()});
@@ -1262,7 +1265,7 @@ function ltSalvar(r,i,novo){
   const x=r.det.dias[i],dKg=(novo?+novo.carga||0:0)-(+x.carga||0);
   if(novo){x.carga=+novo.carga||0;if(novo.ticket)x.ticket=novo.ticket;else delete x.ticket;if(novo.fase)x.fase=novo.fase;else delete x.fase}
   else{delete x.carga;delete x.ticket;delete x.fase}
-  if(dKg){if(r.racaoRecebida!=null)r.racaoRecebida+=dKg;r.racao=Math.max(0,(r.racao||0)+dKg);const kg=r.kg||r.aves*r.peso;
+  if(dKg&&!normalizaLote(r)){if(r.racaoRecebida!=null)r.racaoRecebida+=dKg;r.racao=Math.max(0,(r.racao||0)+dKg);const kg=r.kg||r.aves*r.peso;
     r.conv=r.racao>0&&kg>0?r.racao/kg:null;r.iep=r.conv?r.viab*r.peso/(r.idade*r.conv)*100:null;}
   r.editado={ts:Date.now(),por:quem()};ltEdit=null;renderAll();renderLoteDet(loteNum);
   toast(novo?(dKg?`Ticket corrigido. Ração do lote ${dKg>0?"+":"−"}${nf(Math.abs(dKg))} kg; conversão ${r.conv?nf(r.conv,3):"–"}.`:"Ticket corrigido."):`Carga excluída. Conversão ${r.conv?nf(r.conv,3):"–"}.`);
@@ -1296,8 +1299,8 @@ $("loteDet").addEventListener("submit",e=>{
   (r.pesagens||[]).forEach(p=>{const vo=p.viab*r.alojadas/100,vn=Math.max(1,vo+dA-dM);if(p.conv)p.conv=p.conv*vo/vn;p.viab=vn/aloj*100});
   const conv=racao>0?racao/kg:null,viab=aves/aloj*100;
   Object.assign(r,{alojadas:aloj,aves,mortT:mort,elimT:elim,peso,sobra,valor,abate:data,idade,racao,kg,conv,viab,iep:conv?viab*peso/(idade*conv)*100:null,
-    gmd:(peso*1000-(r.peso0||44))/idade,lucro:valor+(r.cama||0)-(r.gastos||0),editado:{ts:Date.now(),por:quem()}});
-  renderAll();renderLoteDet(loteNum);toast(`Lote ${r.lote} corrigido. Conversão ${conv?nf(conv,3):"–"}, viabilidade ${nf(viab,2)}%.`);
+    gmd:(peso*1000-(r.peso0||44))/idade,lucro:valor+(r.cama||0)-(r.gastos||0),editado:{ts:Date.now(),por:quem()}});normalizaLote(r);
+  renderAll();renderLoteDet(loteNum);toast(`Lote ${r.lote} corrigido. Conversão ${r.conv?nf(r.conv,3):"–"}, viabilidade ${nf(viab,2)}%.`);
 });
 function renderLoteDet(num){
   atualizaCamaHist(GALPOES[cur]);
@@ -1672,7 +1675,17 @@ function renderObs(){
 }
 const loteAtualNum=g=>((g.hist||[]).reduce((m,h)=>Math.max(m,h.lote||0),0))+1;
 const camaDoLote=(g,n)=>(g.camas||[]).filter(c=>c.lote===n).reduce((a,c)=>a+c.kg*c.rpk,0);
-function atualizaCamaHist(g){(g.hist||[]).forEach(r=>{r.cama=camaDoLote(g,r.lote);if(r.valor!=null&&!Number.isNaN(r.valor))r.lucro=(r.valor||0)+r.cama-(r.gastos||0)})}
+/* Ração do lote encerrado sempre pelo balanço: tickets (detalhes guardados) ± transferências − sobra */
+function normalizaLote(r){
+  const d=r.det||(typeof RECUP_DET!=="undefined"?RECUP_DET[r.galpao+"|"+r.alojamento]:null);if(!d)return false;
+  if(r.racaoTransf==null&&(!r.det||r.det.recup))return false;
+  const rec=(+d.ini||0)+(d.dias||[]).reduce((a,x)=>a+(+x.carga||0),0),tf=r.racaoTransf!=null?r.racaoTransf:(d.transf||[]).reduce((a,t)=>a+(+t.kg||0),0);
+  const racao=Math.max(0,rec+tf-(+r.sobra||0)),kg=r.kg||r.aves*r.peso;
+  r.racaoRecebida=rec;r.racaoTransf=tf;
+  if(Math.abs(racao-(r.racao||0))>0.5){r.racao=racao;r.conv=racao>0&&kg>0?racao/kg:null;r.iep=r.conv?r.viab*r.peso/(r.idade*r.conv)*100:null}
+  return true;
+}
+function atualizaCamaHist(g){(g.hist||[]).forEach(r=>{normalizaLote(r);r.cama=camaDoLote(g,r.lote);if(r.valor!=null&&!Number.isNaN(r.valor))r.lucro=(r.valor||0)+r.cama-(r.gastos||0)})}
 function opcoesLoteCama(){
   const g=GALPOES[cur],atual=loteAtualNum(g),hs=[...(g.hist||[])].reverse();
   const padrao=(S.idade===0&&hs.length)?hs[0].lote:atual;
@@ -2006,17 +2019,17 @@ async function carregar(uid){
 let pararOuvir=null,remotoPend=null;
 function aplicaRemoto(js){
   try{const aba=["hoje","lancar","relatorio","financeiro","config","lote"].find(t=>!$("tab-"+t).hidden)||"hoje",c=cur;
-    restore(JSON.parse(js));if(c<GALPOES.length)useGalpao(c);lastJs=snapshot();editDia=null;renderAll();showTab(aba);toast("Dados atualizados por outro usuário")}catch(_){}
+    restore(JSON.parse(js));if(c<GALPOES.length)useGalpao(c);lastJs=snapshot();editDia=null;renderAll();if(aba==="lote"&&!renderLoteDet(loteNum))aba="relatorio";showTab(aba);toast("Dados atualizados por outro usuário")}catch(_){}
 }
 function ouvir(){
   if(pararOuvir)pararOuvir();
   pararOuvir=onSnapshot(doc(FB.db,"agz_equipe","principal"),sn=>{
-    if(!sn.exists()||sn.metadata.hasPendingWrites)return;const js=sn.data().json;if(!js||js===lastJs||pend)return;
+    if(!sn.exists()||sn.metadata.hasPendingWrites)return;const js=sn.data().json;if(!js||js===lastJs||pend||voando>0||enviados.includes(js))return;
     const ae=document.activeElement;if(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)){remotoPend=js;return}
     aplicaRemoto(js);
   },()=>{});
 }
-document.addEventListener("focusout",()=>setTimeout(()=>{const ae=document.activeElement;if(remotoPend&&!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))&&!pend){const js=remotoPend;remotoPend=null;if(js!==lastJs)aplicaRemoto(js)}},400));
+document.addEventListener("focusout",()=>setTimeout(()=>{const ae=document.activeElement;if(remotoPend&&!(ae&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName))&&!pend&&voando===0){const js=remotoPend;remotoPend=null;if(js!==lastJs&&!enviados.includes(js))aplicaRemoto(js)}},400));
 async function carregarLicencas(){
   const snap=await getDocs(collection(FB.db,"agz_licencas"));
   const ls=[];snap.forEach(d=>ls.push({uid:d.id,...d.data()}));
